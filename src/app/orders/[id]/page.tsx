@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  Package, 
-  Clock, 
-  CheckCircle2, 
-  Truck, 
+import {
+  Package,
+  Clock,
+  CheckCircle2,
+  Truck,
   XCircle,
   ArrowLeft,
   MapPin,
@@ -16,7 +16,10 @@ import {
   Copy,
   ExternalLink,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  FileDown,
+  Eye,
+  Printer
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,11 +62,13 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { isAuthenticated } = useAuthStore();
-  
+
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const orderNumber = params.id as string;
 
@@ -108,6 +113,40 @@ export default function OrderDetailPage() {
   const handleCopyOrderNumber = () => {
     navigator.clipboard.writeText(orderNumber);
     toast.success('Order number copied!');
+  };
+
+  const handleDownloadInvoice = async () => {
+    try {
+      await orderService.downloadInvoice(orderNumber);
+      toast.success('Invoice download started');
+    } catch (error) {
+      toast.error('Failed to download invoice');
+    }
+  };
+
+  const handlePreviewInvoice = async () => {
+    try {
+      if (previewUrl) {
+        setShowPreview(true);
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/orders/${orderNumber}/invoice`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setShowPreview(true);
+    } catch (error) {
+      toast.error('Failed to preview invoice');
+    }
+  };
+
+  const handlePrint = () => {
+    handlePreviewInvoice();
   };
 
   const getCurrentStep = () => {
@@ -206,18 +245,16 @@ export default function OrderDetailPage() {
                               className="flex flex-col items-center relative z-10"
                             >
                               <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                                  isCompleted
-                                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                                    : 'bg-slate-200 text-slate-400'
-                                } ${isCurrent ? 'ring-4 ring-emerald-100' : ''}`}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isCompleted
+                                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
+                                  : 'bg-slate-200 text-slate-400'
+                                  } ${isCurrent ? 'ring-4 ring-emerald-100' : ''}`}
                               >
                                 <CheckCircle2 className="w-5 h-5" />
                               </div>
                               <p
-                                className={`text-xs mt-2 text-center ${
-                                  isCompleted ? 'text-slate-900 font-medium' : 'text-slate-400'
-                                }`}
+                                className={`text-xs mt-2 text-center ${isCompleted ? 'text-slate-900 font-medium' : 'text-slate-400'
+                                  }`}
                               >
                                 {step.label}
                               </p>
@@ -360,14 +397,13 @@ export default function OrderDetailPage() {
                 <CardContent>
                   <p className="font-medium capitalize">{order.paymentMethod.replace('_', ' ')}</p>
                   <p className="text-sm text-slate-600 capitalize mt-1">
-                    Status: 
+                    Status:
                     <Badge
                       variant="outline"
-                      className={`ml-2 ${
-                        order.paymentStatus === 'paid'
-                          ? 'text-emerald-600 border-emerald-200'
-                          : 'text-yellow-600 border-yellow-200'
-                      }`}
+                      className={`ml-2 ${order.paymentStatus === 'paid'
+                        ? 'text-emerald-600 border-emerald-200'
+                        : 'text-yellow-600 border-yellow-200'
+                        }`}
                     >
                       {order.paymentStatus}
                     </Badge>
@@ -457,6 +493,43 @@ export default function OrderDetailPage() {
                         Cancel Order
                       </Button>
                     )}
+
+
+                    <Separator className="my-4" />
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Documents</p>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start border-slate-200"
+                        onClick={handleDownloadInvoice}
+                      >
+                        <FileDown className="w-4 h-4 mr-2 text-emerald-600" />
+                        Download Invoice
+                      </Button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="justify-start border-slate-200"
+                          onClick={handlePreviewInvoice}
+                        >
+                          <Eye className="w-4 h-4 mr-2 text-blue-600" />
+                          Preview
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="justify-start border-slate-200"
+                          onClick={handlePrint}
+                        >
+                          <Printer className="w-4 h-4 mr-2 text-purple-600" />
+                          Print
+                        </Button>
+
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -491,6 +564,92 @@ export default function OrderDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-5xl h-[92vh] p-0 flex flex-col overflow-hidden border-none shadow-2xl bg-white rounded-2xl">
+          {/* Custom Premium Header */}
+          <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between shadow-lg z-20">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20">
+                <FileDown className="w-6 h-6 text-indigo-300" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold tracking-tight text-white">Invoice Receipt</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Preview of your invoice for order {order.orderNumber}
+                </DialogDescription>
+                <p className="text-xs text-indigo-200/70 font-medium">#{order.orderNumber} • Generated on {new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/10 hover:text-white hidden md:flex border border-white/10"
+                onClick={() => {
+                  const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement;
+                  if (iframe) {
+                    iframe.contentWindow?.print();
+                  }
+                }}
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Quick Print
+              </Button>
+              <Button
+                size="sm"
+                className="bg-indigo-500 hover:bg-indigo-600 text-white border-none shadow-lg shadow-indigo-500/20"
+                onClick={handleDownloadInvoice}
+              >
+                <FileDown className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+              <Separator orientation="vertical" className="h-8 bg-white/10 mx-1 hidden md:block" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white/70 hover:text-white hover:bg-white/10 rounded-full"
+                onClick={() => setShowPreview(false)}
+              >
+                <XCircle className="w-6 h-6" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1 bg-slate-50 relative p-4 lg:p-8 overflow-auto flex justify-center">
+            <div className="w-full max-w-4xl h-full shadow-2xl rounded-sm overflow-hidden bg-white border border-slate-200">
+              {previewUrl ? (
+                <iframe
+                  id="preview-iframe"
+                  src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                  className="w-full h-full border-none"
+                  title="Invoice Preview"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full gap-4">
+                  <RefreshCw className="w-12 h-12 animate-spin text-indigo-500" />
+                  <div className="text-center">
+                    <p className="text-slate-900 font-semibold">Generating Your Invoice...</p>
+                    <p className="text-slate-500 text-sm">Please wait a moment while we prepare your document.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <p className="text-xs text-slate-400 font-medium italic">
+              * This is a computer generated invoice and does not require a physical signature.
+            </p>
+            <Button variant="secondary" size="sm" className="font-semibold" onClick={() => setShowPreview(false)}>
+              Back to Order
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, ShoppingBag, ArrowRight, Package, Truck, Clock } from 'lucide-react';
+import { CheckCircle, ShoppingBag, ArrowRight, Package, Truck, Clock, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { orderService } from '@/lib/api';
@@ -151,13 +151,27 @@ function SuccessContent() {
                             </p>
                         </CardContent>
 
-                        <CardFooter className="p-6 lg:p-10 bg-slate-50 flex flex-col sm:flex-row gap-4">
+                        <CardFooter className="p-6 lg:p-10 bg-slate-50 flex flex-col md:flex-row gap-4">
                             <Button
                                 className="flex-1 bg-slate-900 hover:bg-slate-800 h-12 text-white"
                                 onClick={() => router.push(orderNumber ? `/orders/${orderNumber}` : '/orders')}
                             >
                                 Track Order
                                 <ArrowRight className="ml-2 w-5 h-5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="flex-1 h-12 border-slate-300"
+                                onClick={() => {
+                                    if (orderNumber) {
+                                        orderService.downloadInvoice(orderNumber);
+                                    } else {
+                                        toast.error("Order number not found");
+                                    }
+                                }}
+                            >
+                                <FileDown className="mr-2 w-5 h-5" />
+                                Download Invoice
                             </Button>
                             <Button
                                 variant="outline"

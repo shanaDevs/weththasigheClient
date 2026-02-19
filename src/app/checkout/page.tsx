@@ -15,7 +15,8 @@ import {
   Wallet,
   Banknote,
   Smartphone,
-  Receipt
+  Receipt,
+  RefreshCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,8 +40,6 @@ const paymentMethods = [
   { value: 'cod', label: 'Cash on Delivery', icon: Banknote, description: 'Pay when delivered' },
 ];
 
-declare const payhere: any;
-
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -58,6 +57,21 @@ function CheckoutContent() {
   const [customerNotes, setCustomerNotes] = useState('');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [step, setStep] = useState(1);
+  const [isPayhereLoaded, setIsPayhereLoaded] = useState(false);
+
+  // Check if PayHere script is loaded
+  useEffect(() => {
+    const checkPayhere = () => {
+      if (typeof window !== 'undefined' && (window as any).payhere) {
+        setIsPayhereLoaded(true);
+      } else {
+        // Retry after a short delay
+        const timer = setTimeout(checkPayhere, 100);
+        return () => clearTimeout(timer);
+      }
+    };
+    checkPayhere();
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -95,13 +109,15 @@ function CheckoutContent() {
 
   // Special effect for retry logic
   useEffect(() => {
-    if (retryOrderId && isAuthenticated) {
+    if (retryOrderId && isAuthenticated && isPayhereLoaded) {
       const handleRetry = async () => {
         try {
           const payhereData = await orderService.getPaymentData(retryOrderId);
           if (payhereData) {
             toast.info('Restarting your payment...');
 
+            const payhere = (window as any).payhere;
+            
             payhere.onCompleted = function onCompleted() {
               toast.success('Payment successful!');
               router.push(`/checkout/success?order_id=${retryOrderId}`);
@@ -128,7 +144,7 @@ function CheckoutContent() {
 
       handleRetry();
     }
-  }, [retryOrderId, isAuthenticated, router]);
+  }, [retryOrderId, isAuthenticated, isPayhereLoaded, router]);
 
   const handlePlaceOrder = async () => {
     if (!selectedShippingAddress) {
@@ -156,7 +172,16 @@ function CheckoutContent() {
       const order = await orderService.createOrder(orderData);
 
       if (paymentMethod === 'payhere' && (order as any).payhereData) {
+        // Check if PayHere is available
+        if (!isPayhereLoaded || typeof window === 'undefined' || !(window as any).payhere) {
+          toast.error('Payment system not ready. Please refresh and try again.');
+          setIsPlacingOrder(false);
+          return;
+        }
+
         // PayHere Payment
+        const payhere = (window as any).payhere;
+        
         payhere.onCompleted = function onCompleted() {
           toast.success('Payment successful and order placed!');
           clearCart(); // Clear cart after successful payment

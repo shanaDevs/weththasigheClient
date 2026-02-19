@@ -47,4 +47,20 @@ export const orderService = {
     const response = await api.get<ApiResponse<any>>(`/orders/${orderId}/payment-data`);
     return response.data.data;
   },
+
+  async downloadInvoice(id: string | number): Promise<void> {
+    const response = await api.get(`/orders/${id}/invoice`, {
+      responseType: 'blob'
+    });
+
+    // Create a download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Invoice-${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  },
 };
+
