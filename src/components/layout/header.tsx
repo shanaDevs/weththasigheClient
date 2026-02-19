@@ -15,7 +15,8 @@ import {
   MapPin,
   Stethoscope,
   ChevronDown,
-  LayoutDashboard
+  LayoutDashboard,
+  Wallet
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -229,7 +230,16 @@ export function Header() {
                       Profile
                     </Link>
                   </DropdownMenuItem>
+                  {user?.role?.name?.toLowerCase() === 'doctor' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/doctor/payments" className="flex items-center cursor-pointer">
+                        <Wallet className="mr-2 w-4 h-4 text-emerald-600" />
+                        Payments & Credit
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
+
                     <Link href="/addresses" className="flex items-center cursor-pointer">
                       <MapPin className="mr-2 w-4 h-4" />
                       Addresses

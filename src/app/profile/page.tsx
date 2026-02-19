@@ -93,8 +93,8 @@ export default function ProfilePage() {
         setAddresses(addressData);
 
         form.reset({
-          fullName: profileData.fullName,
-          email: profileData.email,
+          fullName: profileData.fullName || '',
+          email: profileData.email || '',
           phone: profileData.phone || '',
           clinicName: profileData.clinicName || '',
           clinicAddress: profileData.clinicAddress || '',
@@ -178,7 +178,7 @@ export default function ProfilePage() {
                   <div className="relative inline-block">
                     <Avatar className="w-24 h-24 text-2xl">
                       <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-                        {profile ? getInitials(profile.fullName) : 'U'}
+                        {profile?.fullName ? getInitials(profile.fullName) : 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-slate-50 transition-colors">

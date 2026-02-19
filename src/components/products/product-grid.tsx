@@ -9,9 +9,10 @@ interface ProductGridProps {
   products: Product[];
   isLoading?: boolean;
   skeletonCount?: number;
+  onQuickView?: (product: Product) => void;
 }
 
-export function ProductGrid({ products, isLoading, skeletonCount = 8 }: ProductGridProps) {
+export function ProductGrid({ products, isLoading, skeletonCount = 8, onQuickView }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -53,7 +54,12 @@ export function ProductGrid({ products, isLoading, skeletonCount = 8 }: ProductG
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
       {products.map((product, index) => (
-        <ProductCard key={product.id} product={product} index={index} />
+        <ProductCard 
+          key={product.id} 
+          product={product} 
+          index={index}
+          onQuickView={onQuickView}
+        />
       ))}
     </div>
   );

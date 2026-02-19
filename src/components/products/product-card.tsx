@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, AlertCircle, Pill } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, AlertCircle, Pill, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,15 +13,17 @@ import type { Product } from '@/types';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { OrderRequestDialog } from './order-request-dialog';
+import { ProductBadges } from './product-badges';
 import { getProductPrice } from '@/lib/product-utils';
 
 
 interface ProductCardProps {
   product: Product;
   index?: number;
+  onQuickView?: (product: Product) => void;
 }
 
-export function ProductCard({ product, index = 0 }: ProductCardProps) {
+export function ProductCard({ product, index = 0, onQuickView }: ProductCardProps) {
   const { user, isAuthenticated } = useAuthStore();
   const { addToCart, getItemByProductId, updateQuantity, isLoading } = useCartStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -110,23 +112,28 @@ export function ProductCard({ product, index = 0 }: ProductCardProps) {
             )}
 
             {/* Badges */}
-            <div className="absolute top-3 left-3 flex flex-col gap-2">
-              {discount > 0 && (
-                <Badge className="bg-red-500 hover:bg-red-500 text-white font-semibold">
-                  {discount}% OFF
-                </Badge>
-              )}
-              {product.requiresPrescription && (
-                <Badge variant="outline" className="bg-white/90 text-amber-600 border-amber-300">
-                  Rx Required
-                </Badge>
-              )}
-              {product.isMaxOrderRestricted && (
-                <Badge variant="outline" className="bg-white/90 text-orange-600 border-orange-300">
-                  Limit: {product.maxOrderQuantity}
-                </Badge>
-              )}
+            <div className="absolute top-3 left-3">
+              <ProductBadges product={product} discount={discount} />
             </div>
+
+            {/* Quick View Button */}
+            {onQuickView && (
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/40 transition-colors duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onQuickView(product);
+                  }}
+                  className="shadow-lg"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Quick View
+                </Button>
+              </div>
+            )}
 
             {isOutOfStock && (
               <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">

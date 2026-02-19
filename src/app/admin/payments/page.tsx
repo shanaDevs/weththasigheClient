@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Fragment } from 'react';
+
 import {
     Wallet,
     Search,
@@ -23,7 +24,11 @@ import {
     ChevronDown,
     ChevronUp,
     RefreshCw,
+    Plus,
+    Clock,
 } from 'lucide-react';
+
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,7 +67,8 @@ import Link from 'next/link';
 // ─── Constants ──────────────────────────────────────────────────────────────────
 
 const PAYMENT_STATUSES = [
-    { value: 'pending', label: 'Pending', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+    { value: 'pending', label: 'Outstanding', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+
     { value: 'processing', label: 'Processing', color: 'bg-blue-100 text-blue-700 border-blue-200' },
     { value: 'completed', label: 'Completed', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
     { value: 'failed', label: 'Failed', color: 'bg-red-100 text-red-700 border-red-200' },
@@ -100,9 +106,11 @@ interface PaymentFilters {
 interface PaymentStats {
     totalPaid: number;
     totalRefunds: number;
+    totalOutstanding: number;
     netPayments: number;
     byMethod: { method: string; count: number; total: number }[];
 }
+
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -169,6 +177,19 @@ export default function AdminPaymentsPage() {
     const [detailDialogOpen, setDetailDialogOpen] = useState(false);
     const [detailPayment, setDetailPayment] = useState<Payment | null>(null);
 
+    // Settlement Dialog
+    const [settleDialogOpen, setSettleDialogOpen] = useState(false);
+    const [doctors, setDoctors] = useState<any[]>([]);
+    const [settleData, setSettleData] = useState({
+        doctorId: '',
+        amount: '',
+        method: 'cash',
+        transactionId: '',
+        notes: ''
+    });
+    const [settling, setSettling] = useState(false);
+
+
     const fetchPayments = useCallback(async () => {
         setLoading(true);
         try {
@@ -201,6 +222,20 @@ export default function AdminPaymentsPage() {
     useEffect(() => {
         fetchStats();
     }, [fetchStats]);
+
+    const fetchDoctors = async () => {
+        try {
+            const res = await adminApi.getDoctors({ limit: 100 });
+            setDoctors(res.data);
+        } catch (error) {
+            console.error('Failed to load doctors');
+        }
+    };
+
+    useEffect(() => {
+        fetchDoctors();
+    }, []);
+
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -249,6 +284,32 @@ export default function AdminPaymentsPage() {
         setExpandedRow(prev => (prev === id ? null : id));
     };
 
+    const handleSettle = async () => {
+        if (!settleData.doctorId || !settleData.amount) {
+            toast.error('Please select a doctor and enter an amount');
+            return;
+        }
+        setSettling(true);
+        try {
+            await adminApi.settleDoctorOutstanding(parseInt(settleData.doctorId), {
+                amount: parseFloat(settleData.amount),
+                method: settleData.method,
+                transactionId: settleData.transactionId,
+                notes: settleData.notes
+            });
+            toast.success('Doctor account settled successfully');
+            setSettleDialogOpen(false);
+            setSettleData({ doctorId: '', amount: '', method: 'cash', transactionId: '', notes: '' });
+            fetchPayments();
+            fetchStats();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to settle account');
+        } finally {
+            setSettling(false);
+        }
+    };
+
+
     // ─── Stats Section ──────────────────────────────────────────────────────────
 
     const totalMethodBreakdown = stats?.byMethod || [];
@@ -264,15 +325,28 @@ export default function AdminPaymentsPage() {
                     <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
                     <p className="text-slate-500">Financial transaction tracking &amp; management ({pagination.total} records)</p>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => { fetchPayments(); fetchStats(); }}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="default"
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => setSettleDialogOpen(true)}
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Settle Doctor Account
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { fetchPayments(); fetchStats(); }}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refresh
+                    </Button>
+                </div>
             </div>
+
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+
                     <Card className="border-0 shadow-md bg-gradient-to-br from-emerald-50 to-teal-50">
                         <CardContent className="p-5">
                             <div className="flex items-center justify-between">
@@ -314,6 +388,21 @@ export default function AdminPaymentsPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    <Card className="border-0 shadow-md bg-gradient-to-br from-amber-50 to-orange-50">
+                        <CardContent className="p-5">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-amber-600 mb-1">Total Outstanding</p>
+                                    <p className="text-2xl font-bold text-amber-900">{formatCurrency(stats.totalOutstanding)}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                                    <Clock className="w-6 h-6 text-amber-600" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
 
                     <Card className="border-0 shadow-md bg-gradient-to-br from-purple-50 to-violet-50">
                         <CardContent className="p-5">
@@ -473,12 +562,13 @@ export default function AdminPaymentsPage() {
                                         const isRefund = parseFloat(payment.amount) < 0;
 
                                         return (
-                                            <>
+                                            <Fragment key={payment.id}>
+
                                                 <TableRow
-                                                    key={payment.id}
                                                     className={`cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50' : ''} ${isRefund ? 'bg-red-50/30' : ''}`}
                                                     onClick={() => toggleExpandRow(payment.id)}
                                                 >
+
                                                     <TableCell className="px-2">
                                                         <Button variant="ghost" size="icon" className="w-6 h-6">
                                                             {isExpanded ? (
@@ -504,8 +594,8 @@ export default function AdminPaymentsPage() {
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
                                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${getCustomerType(payment) === 'doctor'
-                                                                    ? 'bg-blue-100 text-blue-700'
-                                                                    : 'bg-slate-100 text-slate-600'
+                                                                ? 'bg-blue-100 text-blue-700'
+                                                                : 'bg-slate-100 text-slate-600'
                                                                 }`}>
                                                                 {getCustomerType(payment) === 'doctor'
                                                                     ? <Stethoscope className="w-3.5 h-3.5" />
@@ -572,7 +662,8 @@ export default function AdminPaymentsPage() {
                                                             >
                                                                 <Eye className="w-3.5 h-3.5" />
                                                             </Button>
-                                                            {payment.status === 'completed' && parseFloat(payment.amount) > 0 && (
+                                                            {['completed', 'pending', 'processing'].includes(payment.status) && parseFloat(payment.amount) > 0 && (
+
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -693,8 +784,10 @@ export default function AdminPaymentsPage() {
                                                         </TableCell>
                                                     </TableRow>
                                                 )}
-                                            </>
+                                            </Fragment>
+
                                         );
+
                                     })}
                                 </TableBody>
                             </Table>
@@ -950,6 +1043,108 @@ export default function AdminPaymentsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Settle Doctor Account Dialog */}
+            <Dialog open={settleDialogOpen} onOpenChange={setSettleDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Wallet className="w-5 h-5 text-emerald-600" />
+                            Settle Doctor Account
+                        </DialogTitle>
+                        <DialogDescription>
+                            Record a payment for a doctor. This will be applied to their oldest outstanding orders first.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-doctor">Select Doctor *</Label>
+                            <select
+                                id="settle-doctor"
+                                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                value={settleData.doctorId}
+                                onChange={e => setSettleData({ ...settleData, doctorId: e.target.value })}
+                            >
+                                <option value="">Select a doctor...</option>
+                                {doctors.map(doc => (
+                                    <option key={doc.id} value={doc.id}>
+                                        Dr. {doc.user?.firstName} {doc.user?.lastName} ({doc.licenseNumber})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-amount">Payment Amount *</Label>
+                            <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">Rs.</div>
+                                <Input
+                                    id="settle-amount"
+                                    type="number"
+                                    placeholder="0.00"
+                                    className="pl-10"
+                                    value={settleData.amount}
+                                    onChange={e => setSettleData({ ...settleData, amount: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-method">Payment Method *</Label>
+                            <select
+                                id="settle-method"
+                                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                value={settleData.method}
+                                onChange={e => setSettleData({ ...settleData, method: e.target.value })}
+                            >
+                                {PAYMENT_METHODS.filter(m => m.value !== 'credit').map(method => (
+                                    <option key={method.value} value={method.value}>{method.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-txid">Transaction ID / Reference</Label>
+                            <Input
+                                id="settle-txid"
+                                placeholder="Ref number, Cheque number etc."
+                                value={settleData.transactionId}
+                                onChange={e => setSettleData({ ...settleData, transactionId: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-notes">Notes</Label>
+                            <Textarea
+                                id="settle-notes"
+                                placeholder="Any internal notes about this payment..."
+                                value={settleData.notes}
+                                onChange={e => setSettleData({ ...settleData, notes: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSettleDialogOpen(false)}>Cancel</Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={handleSettle}
+                            disabled={settling || !settleData.amount || !settleData.doctorId}
+                        >
+                            {settling ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                                    Processing...
+                                </>
+                            ) : (
+                                'Process Payment'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

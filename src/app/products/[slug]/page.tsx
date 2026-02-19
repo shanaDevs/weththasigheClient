@@ -39,7 +39,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { ProductDetailSkeleton } from '@/components/products';
+import { addToRecentlyViewed } from '@/components/products';
 import { productService } from '@/lib/api';
 import { useCartStore, useAuthStore } from '@/store';
 import { formatCurrency, calculateDiscount, getImageUrl } from '@/lib/utils';
@@ -70,6 +72,9 @@ export default function ProductDetailPage() {
         const data = await productService.getProductBySlug(slug);
         setProduct(data);
         setQuantity(data.minOrderQuantity || 1);
+        
+        // Add to recently viewed
+        addToRecentlyViewed(data.id);
       } catch (error) {
         console.error('Failed to fetch product:', error);
       } finally {

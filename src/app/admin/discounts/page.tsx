@@ -612,7 +612,7 @@ export default function AdminDiscountsPage() {
                                     type="number"
                                     min="0"
                                     value={formData.usageLimit || ''}
-                                    onChange={e => setFormData(p => ({ ...p, usageLimit: e.target.value }))}
+                                    onChange={e => setFormData(p => ({ ...p, usageLimit: e.target.value ? Number(e.target.value) : undefined }))}
                                     placeholder="Unlimited"
                                 />
                             </div>

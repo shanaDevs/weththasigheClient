@@ -1,11 +1,11 @@
 import api from './client';
-import type { 
-  ApiResponse, 
-  Doctor, 
-  DoctorRegisterInput, 
+import type {
+  ApiResponse,
+  Doctor,
+  DoctorRegisterInput,
   CreditSummary,
   Address,
-  AddressInput 
+  AddressInput
 } from '@/types';
 
 export const doctorService = {
@@ -53,4 +53,16 @@ export const doctorService = {
   async deleteAddress(id: number): Promise<void> {
     await api.delete(`/doctors/addresses/${id}`);
   },
+
+  async settleOutstanding(data: { amount: number; method: string; transactionId?: string; notes?: string }): Promise<any> {
+    const response = await api.post<ApiResponse<any>>('/doctors/me/settle', data);
+    return response.data;
+  },
+
+  async getMyPayments(params: { page?: number; limit?: number } = {}): Promise<any> {
+    const response = await api.get<ApiResponse<any>>('/payments/my-payments', { params });
+    return response.data;
+  },
 };
+
+

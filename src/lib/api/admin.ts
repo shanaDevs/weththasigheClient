@@ -16,7 +16,8 @@ import type {
   Permission,
   Agency,
   Discount,
-  Brand
+  Brand,
+  Promotion
 } from '@/types';
 
 // Types for Admin API
@@ -79,28 +80,12 @@ export interface UserFilters {
   search?: string;
 }
 
-export interface Promotion {
-  id: number;
-  name: string;
-  slug: string;
-  description?: string;
-  type: string;
-  bannerImage?: string;
-  discountType?: string;
-  discountValue?: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-  status: string;
-  displayOrder?: number;
-  createdAt: string;
-}
 
 export interface CreatePromotionData {
   name: string;
   description?: string;
-  type: string;
-  discountType?: string;
+  type: Promotion['type'];
+  discountType?: Promotion['discountType'];
   discountValue?: number;
   startDate: string;
   endDate: string;
@@ -196,15 +181,6 @@ export const adminApi = {
     await api.delete(`/products/${id}`);
   },
 
-  async getManufacturers(): Promise<string[]> {
-    const response = await api.get<ApiResponse<string[]>>('/products/manufacturers');
-    return response.data.data;
-  },
-
-  async getAgencies(): Promise<Agency[]> {
-    const response = await api.get<ApiResponse<Agency[]>>('/agencies');
-    return response.data.data;
-  },
 
   async getLowStockProducts(): Promise<Product[]> {
     const response = await api.get<ApiResponse<Product[]>>('/products/low-stock');
@@ -275,25 +251,6 @@ export const adminApi = {
     await api.delete(`/promotions/${id}`);
   },
 
-  // Categories
-  async getCategories(): Promise<Category[]> {
-    const response = await api.get<ApiResponse<Category[]>>('/categories');
-    return response.data.data || [];
-  },
-
-  async createCategory(data: Partial<Category>): Promise<Category> {
-    const response = await api.post<ApiResponse<Category>>('/categories', data);
-    return response.data.data;
-  },
-
-  async updateCategory(id: number, data: Partial<Category>): Promise<Category> {
-    const response = await api.put<ApiResponse<Category>>(`/categories/${id}`, data);
-    return response.data.data;
-  },
-
-  async deleteCategory(id: number): Promise<void> {
-    await api.delete(`/categories/${id}`);
-  },
 
   // Upload
   async uploadProductImages(files: File[]): Promise<string[]> {
@@ -390,7 +347,7 @@ export const adminApi = {
   },
 
   // Order Requests (Order More)
-  async getOrderRequests(filters: { status?: string; page?: number; limit?: number } = {}): Promise<PaginatedResponse<OrderRequest>> {
+  async getOrderRequests(filters: { status?: string; page?: number; limit?: number; search?: string } = {}): Promise<PaginatedResponse<OrderRequest>> {
     const response = await api.get<ApiResponse<{ requests: OrderRequest[]; pagination: PaginatedResponse<OrderRequest>['pagination'] }>>('/products/admin/order-requests', {
       params: filters,
     });
@@ -405,16 +362,6 @@ export const adminApi = {
     return response.data.data;
   },
 
-  // Suppliers
-  async getSuppliers(): Promise<Supplier[]> {
-    const response = await api.get<ApiResponse<Supplier[]>>('/products/suppliers');
-    return response.data.data || [];
-  },
-
-  async createSupplier(data: Partial<Supplier>): Promise<Supplier> {
-    const response = await api.post<ApiResponse<Supplier>>('/products/suppliers', data);
-    return response.data.data;
-  },
 
   // Product Batches
   async getProductBatches(productId: number): Promise<ProductBatch[]> {
@@ -639,6 +586,7 @@ export const adminApi = {
   async getPaymentStats(startDate?: string, endDate?: string): Promise<{
     totalPaid: number;
     totalRefunds: number;
+    totalOutstanding: number;
     netPayments: number;
     byMethod: { method: string; count: number; total: number }[];
   }> {
@@ -662,6 +610,12 @@ export const adminApi = {
     const response = await api.post<ApiResponse<any>>(`/payments/${paymentId}/refund`, data);
     return response.data.data;
   },
+
+  async settleDoctorOutstanding(doctorId: number, data: { amount: number; method: string; transactionId?: string; notes?: string }): Promise<any> {
+    const response = await api.post<ApiResponse<any>>(`/doctors/${doctorId}/settle`, data);
+    return response.data;
+  },
 };
+
 
 export default adminApi;

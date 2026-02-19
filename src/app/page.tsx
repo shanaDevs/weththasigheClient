@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ProductGrid } from '@/components/products';
+import { ProductGrid, RecentlyViewedProducts } from '@/components/products';
 import { productService, categoryService, promotionService } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import type { Product, Category, Promotion } from '@/types';
@@ -420,6 +420,13 @@ export default function HomePage() {
           </motion.div>
 
           <ProductGrid products={products} isLoading={isLoading} skeletonCount={8} />
+        </div>
+      </section>
+
+      {/* Recently Viewed Products */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <RecentlyViewedProducts />
         </div>
       </section>
 

@@ -24,6 +24,7 @@ export interface User {
   role: Role;
   roleId?: number;
   isDisabled?: boolean;
+  isVerified?: boolean;
   twoFactorEnabled?: boolean;
   authenticatedBy?: 'phone' | 'userName';
   doctorProfile?: {
@@ -207,6 +208,8 @@ export interface Product {
   isActive?: boolean;
   status?: string;
   bulkPrices?: BulkPrice[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Cart Types
@@ -427,11 +430,15 @@ export interface CreateOrderInput {
 export interface Doctor {
   id: number;
   userId?: number;
+  fullName?: string;
+  phone?: string;
   licenseNumber: string;
   specialization?: string;
   qualification?: string;
   hospitalClinic?: string;
+  clinicName?: string;
   address?: string;
+  clinicAddress?: string;
   city?: string;
   state?: string;
   country?: string;
@@ -504,6 +511,7 @@ export interface ProductBatch {
   stockQuantity: number;
   costPrice: string;
   sellingPrice: string;
+  mrp?: string;
   isActive: boolean;
   createdAt: string;
 }

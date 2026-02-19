@@ -48,7 +48,7 @@ const addressSchema = z.object({
   city: z.string().min(2, 'City is required'),
   state: z.string().min(2, 'State is required'),
   postalCode: z.string().min(5, 'Postal code is required'),
-  type: z.enum(['shipping', 'billing', 'both']),
+  addressType: z.enum(['shipping', 'billing', 'both']),
   isDefault: z.boolean(),
 });
 
@@ -74,7 +74,7 @@ export default function NewAddressPage() {
       city: '',
       state: '',
       postalCode: '',
-      type: 'both',
+      addressType: 'both',
       isDefault: false,
     },
   });
@@ -267,7 +267,7 @@ export default function NewAddressPage() {
                   {/* Address Type */}
                   <FormField
                     control={form.control}
-                    name="type"
+                    name="addressType"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Address Type</FormLabel>

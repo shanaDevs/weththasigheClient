@@ -32,7 +32,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ProductGrid } from '@/components/products';
+import { ProductGrid, QuickViewDialog, PriceRangeSlider } from '@/components/products';
 import { productService, categoryService } from '@/lib/api';
 import { debounce } from '@/lib/utils';
 import type { Product, Category, ProductQueryParams } from '@/types';
@@ -66,8 +66,11 @@ function ProductsContent() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Filter states
+  const [priceRangeSlider, setPriceRangeSlider] = useState<[number, number]>([0, 10000]);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categorySlug') || '');
   const [selectedPriceRange, setSelectedPriceRange] = useState<{ min: number; max: number | null } | null>(null);
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'createdAt');
@@ -145,6 +148,17 @@ function ProductsContent() {
     setCurrentPage(1);
   };
 
+  const handlePriceSliderChange = (value: [number, number]) => {
+    setPriceRangeSlider(value);
+    setSelectedPriceRange({ min: value[0], max: value[1] });
+    setCurrentPage(1);
+  };
+
+  const handleQuickView = (product: Product) => {
+    setQuickViewProduct(product);
+    setIsQuickViewOpen(true);
+  };
+
   const clearFilters = () => {
     setSelectedCategory('');
     setSelectedPriceRange(null);
@@ -190,13 +204,32 @@ function ProductsContent() {
       {/* Price Range */}
       <div>
         <h4 className="font-semibold text-slate-900 mb-3">Price Range</h4>
+        
+        {/* Price Range Slider */}
+        <div className="mb-4">
+          <PriceRangeSlider
+            min={0}
+            max={10000}
+            value={priceRangeSlider}
+            onChange={handlePriceSliderChange}
+            step={100}
+          />
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* Quick Price Filters */}
         <div className="space-y-2">
+          <p className="text-sm text-slate-600 mb-2">Quick Filters:</p>
           {priceRanges.map((range, index) => (
             <div key={index} className="flex items-center space-x-2">
               <Checkbox
                 id={`price-${index}`}
                 checked={selectedPriceRange?.min === range.min && selectedPriceRange?.max === range.max}
-                onCheckedChange={() => handlePriceRangeChange(range)}
+                onCheckedChange={() => {
+                  handlePriceRangeChange(range);
+                  setPriceRangeSlider([range.min, range.max || 10000]);
+                }}
               />
               <Label
                 htmlFor={`price-${index}`}
@@ -380,7 +413,14 @@ function ProductsContent() {
               </p>
             </div>
 
-            <ProductGrid products={products} isLoading={isLoading} />
+            <ProductGrid products={products} isLoading={isLoading} onQuickView={handleQuickView} />
+
+            {/* Quick View Dialog */}
+            <QuickViewDialog
+              product={quickViewProduct}
+              open={isQuickViewOpen}
+              onOpenChange={setIsQuickViewOpen}
+            />
 
             {/* Pagination */}
             {totalPages > 1 && (

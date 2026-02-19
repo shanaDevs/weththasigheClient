@@ -83,6 +83,7 @@ export default function AdminUsersPage() {
   const [formData, setFormData] = useState<AdminCreateUserInput>({
     firstName: '',
     lastName: '',
+    userName: '',
     phone: '',
     roleName: 'user',
     licenseNumber: '',
@@ -131,7 +132,7 @@ export default function AdminUsersPage() {
   const handleResendEmail = async (user: User) => {
     try {
       await adminApi.resendUserVerification(user.id);
-      toast.success(`Verification email resent to ${user.email || user.phone}`);
+      toast.success(`Verification email resent to ${(user as any).email || user.phone}`);
     } catch (error: any) {
       toast.error(error?.response?.data?.message || 'Failed to resend verification email');
     }
@@ -578,6 +579,7 @@ export default function AdminUsersPage() {
           setFormData({
             firstName: '',
             lastName: '',
+            userName: '',
             phone: '',
             roleName: 'user',
             licenseNumber: '',
@@ -620,6 +622,15 @@ export default function AdminUsersPage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="07XXXXXXXX"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="userName">Username</Label>
+              <Input
+                id="userName"
+                value={formData.userName}
+                onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
+                placeholder="johndoe"
               />
             </div>
             <div className="space-y-2">

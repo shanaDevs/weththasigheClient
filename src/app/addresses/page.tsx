@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  MapPin, 
-  Plus, 
+import {
+  MapPin,
+  Plus,
   MoreVertical,
   Edit,
   Trash2,
@@ -40,7 +40,7 @@ import type { Address } from '@/types';
 export default function AddressesPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  
+
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -219,7 +219,7 @@ export default function AddressesPage() {
                     </p>
                     <p className="text-sm text-slate-500 mt-2">{address.contactPhone}</p>
                     <Badge variant="outline" className="mt-2 capitalize">
-                      {address.type}
+                      {address.addressType}
                     </Badge>
                   </CardContent>
                 </Card>

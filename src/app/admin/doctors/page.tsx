@@ -38,6 +38,8 @@ export default function AdminDoctorsPage() {
     const [showDetailDialog, setShowDetailDialog] = useState(false);
     const [showVerifyDialog, setShowVerifyDialog] = useState(false);
     const [showCreditDialog, setShowCreditDialog] = useState(false);
+    const [showSettleDialog, setShowSettleDialog] = useState(false);
+
 
     // Form states
     const [creditLimit, setCreditLimit] = useState<string>('0');
@@ -55,6 +57,14 @@ export default function AdminDoctorsPage() {
         hospitalClinic: ''
     });
     const [isCreating, setIsCreating] = useState(false);
+    const [settleData, setSettleData] = useState({
+        amount: '',
+        method: 'cash',
+        transactionId: '',
+        notes: ''
+    });
+    const [isSettling, setIsSettling] = useState(false);
+
 
     // ── Fetch ──────────────────────────────────────────────────────────────────
 
@@ -117,6 +127,33 @@ export default function AdminDoctorsPage() {
         }
     };
 
+    const handleSettle = async () => {
+        if (!selectedDoctor || !settleData.amount) return;
+        setIsSettling(true);
+        try {
+            await adminApi.settleDoctorOutstanding(selectedDoctor.id, {
+                amount: parseFloat(settleData.amount),
+                method: settleData.method,
+                transactionId: settleData.transactionId,
+                notes: settleData.notes
+            });
+            toast.success('Outstanding settled successfully');
+            setShowSettleDialog(false);
+            setSettleData({
+                amount: '',
+                method: 'cash',
+                transactionId: '',
+                notes: ''
+            });
+            fetchDoctors();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Failed to settle outstanding');
+        } finally {
+            setIsSettling(false);
+        }
+    };
+
+
     // ── Open Helpers ──────────────────────────────────────────────────────────
 
     const openDetails = (doctor: Doctor) => {
@@ -135,6 +172,18 @@ export default function AdminDoctorsPage() {
         setCreditLimit(doctor.creditLimit || '0');
         setShowCreditDialog(true);
     };
+
+    const openSettle = (doctor: Doctor) => {
+        setSelectedDoctor(doctor);
+        setSettleData({
+            amount: '', // Default to empty, let admin enter
+            method: 'cash',
+            transactionId: '',
+            notes: ''
+        });
+        setShowSettleDialog(true);
+    };
+
 
     // ── Filtered List ──────────────────────────────────────────────────────────
 
@@ -346,7 +395,11 @@ export default function AdminDoctorsPage() {
                                                     <DropdownMenuItem onClick={() => openCreditUpdate(doc)}>
                                                         <CreditCard className="w-4 h-4 mr-2" /> Update Credit Limit
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openSettle(doc)} className="text-emerald-600 focus:text-emerald-700">
+                                                        <Wallet className="w-4 h-4 mr-2" /> Settle Outstanding
+                                                    </DropdownMenuItem>
                                                     {!doc.isVerified && (
+
                                                         <DropdownMenuItem onClick={() => handleResendEmail(doc)}>
                                                             <Mail className="w-4 h-4 mr-2" /> Resend Verification
                                                         </DropdownMenuItem>
@@ -701,6 +754,92 @@ export default function AdminDoctorsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+            {/* ── Settle Outstanding Dialog ── */}
+            <Dialog open={showSettleDialog} onOpenChange={setShowSettleDialog}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Wallet className="w-5 h-5 text-emerald-600" />
+                            Settle Outstanding
+                        </DialogTitle>
+                        <DialogDescription>
+                            Record a payment for Dr. {selectedDoctor?.user?.firstName}. This will be applied to oldest outstanding orders first.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4 space-y-4">
+                        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
+                            <span className="text-sm text-emerald-800">Available Credit Limit</span>
+                            <span className="font-bold text-emerald-900">Rs. {parseFloat(selectedDoctor?.creditLimit || '0').toLocaleString()}</span>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-amount">Payment Amount *</Label>
+                            <div className="relative">
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">Rs.</div>
+                                <Input
+                                    id="settle-amount"
+                                    type="number"
+                                    placeholder="0.00"
+                                    className="pl-10"
+                                    value={settleData.amount}
+                                    onChange={e => setSettleData({ ...settleData, amount: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-method">Payment Method *</Label>
+                            <select
+                                id="settle-method"
+                                className="w-full h-10 px-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                value={settleData.method}
+                                onChange={e => setSettleData({ ...settleData, method: e.target.value })}
+                            >
+                                <option value="cash">Cash</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="upi">UPI</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-txid">Transaction ID / Reference</Label>
+                            <Input
+                                id="settle-txid"
+                                placeholder="Ref number, Cheque number etc."
+                                value={settleData.transactionId}
+                                onChange={e => setSettleData({ ...settleData, transactionId: e.target.value })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="settle-notes">Notes</Label>
+                            <textarea
+                                id="settle-notes"
+                                className="w-full min-h-[80px] p-3 rounded-md border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                                placeholder="Any internal notes about this payment..."
+                                value={settleData.notes}
+                                onChange={e => setSettleData({ ...settleData, notes: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowSettleDialog(false)}>Cancel</Button>
+                        <Button
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            onClick={handleSettle}
+                            disabled={isSettling || !settleData.amount}
+                        >
+                            {isSettling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                            Process Payment
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+

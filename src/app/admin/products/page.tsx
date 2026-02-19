@@ -1186,7 +1186,7 @@ export default function AdminProductsPage() {
                           className="h-9 px-2 text-xs text-slate-900"
                           placeholder="MRP"
                           value={batchFormData.mrp || ''}
-                          onChange={e => setBatchFormData({ ...batchFormData, mrp: parseFloat(e.target.value) })}
+                          onChange={e => setBatchFormData({ ...batchFormData, mrp: e.target.value })}
                         />
                         <Input
                           id="batchSell"
@@ -1194,7 +1194,7 @@ export default function AdminProductsPage() {
                           className="h-9 px-2 text-xs text-slate-900"
                           placeholder="Sale"
                           value={batchFormData.sellingPrice || ''}
-                          onChange={e => setBatchFormData({ ...batchFormData, sellingPrice: parseFloat(e.target.value) })}
+                          onChange={e => setBatchFormData({ ...batchFormData, sellingPrice: e.target.value })}
                         />
                       </div>
                     </div>
