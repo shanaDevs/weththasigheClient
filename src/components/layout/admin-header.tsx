@@ -17,7 +17,10 @@ import {
   Settings,
   Store,
   Bell,
-  ChevronDown
+  ChevronDown,
+  Shield,
+  Building2,
+  ClipboardList
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
@@ -38,7 +41,10 @@ const adminNavLinks = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/admin/order-requests', label: 'Order Requests', icon: Inbox },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/roles', label: 'Roles', icon: Shield },
+  { href: '/admin/agencies', label: 'Agencies', icon: Building2 },
   { href: '/admin/promotions', label: 'Promotions', icon: Tags },
+  { href: '/admin/audit-logs', label: 'Audit Logs', icon: ClipboardList },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 

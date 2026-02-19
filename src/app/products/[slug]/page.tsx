@@ -30,6 +30,15 @@ import {
   TableCell,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { ProductDetailSkeleton } from '@/components/products';
 import { productService } from '@/lib/api';
 import { useCartStore, useAuthStore } from '@/store';
@@ -48,6 +57,10 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isAdding, setIsAdding] = useState(false);
+  const [showOrderRequestDialog, setShowOrderRequestDialog] = useState(false);
+  const [reqQty, setReqQty] = useState('');
+  const [reqNote, setReqNote] = useState('');
+  const [reqLoading, setReqLoading] = useState(false);
 
   const slug = params.slug as string;
 
@@ -391,7 +404,7 @@ export default function ProductDetailPage() {
               <div className="flex gap-3">
                 <Button
                   size="lg"
-                  className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-lg font-semibold shadow-lg shadow-emerald-500/25"
+                  className="flex-1 h-14 bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-semibold"
                   disabled={isOutOfStock || isAdding || cartLoading}
                   onClick={handleAddToCart}
                 >
@@ -408,14 +421,101 @@ export default function ProductDetailPage() {
                     </>
                   )}
                 </Button>
-                <Button variant="outline" size="lg" className="h-14 px-4">
+                {product.isMaxOrderRestricted && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="h-14 px-4 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                    onClick={() => setShowOrderRequestDialog(true)}
+                  >
+                    Request More
+                  </Button>
+                )}
+                <Button variant="outline" size="lg" className="h-14 px-4 hover:text-red-600">
                   <Heart className="w-5 h-5" />
                 </Button>
-                <Button variant="outline" size="lg" className="h-14 px-4">
-                  <Share2 className="w-5 h-5" />
-                </Button>
               </div>
+
+              {/* Order Request Message */}
+              {product.isMaxOrderRestricted && (
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5" />
+                  <p className="text-xs text-amber-700">
+                    This product has a maximum order limit of {product.maxOrderQuantity} units.
+                    If you need more, click "Request More".
+                  </p>
+                </div>
+              )}
             </div>
+
+            {/* Order Request Dialog */}
+            <Dialog open={showOrderRequestDialog} onOpenChange={setShowOrderRequestDialog}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                    Request for Bulk Order
+                  </DialogTitle>
+                  <DialogDescription>
+                    Submit a request to order more than the maximum limit for {product.name}.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="req-qty">Requested Quantity</Label>
+                    <Input
+                      id="req-qty"
+                      type="number"
+                      min={product.maxOrderQuantity + 1}
+                      value={reqQty}
+                      onChange={(e) => setReqQty(e.target.value)}
+                      placeholder={`Greater than ${product.maxOrderQuantity}`}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="req-note">Note (Optional)</Label>
+                    <textarea
+                      id="req-note"
+                      className="flex min-h-[80px] w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={reqNote}
+                      onChange={(e) => setReqNote(e.target.value)}
+                      placeholder="Explain why you need this quantity..."
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowOrderRequestDialog(false)}>Cancel</Button>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                    disabled={reqLoading || !reqQty || parseInt(reqQty) <= product.maxOrderQuantity}
+                    onClick={async () => {
+                      if (!isAuthenticated) {
+                        toast.error('Please login to submit requests');
+                        return;
+                      }
+                      setReqLoading(true);
+                      try {
+                        await productService.submitOrderMoreRequest({
+                          productId: product.id,
+                          requestedQuantity: parseInt(reqQty),
+                          note: reqNote
+                        });
+                        toast.success('Your request has been submitted successfully!');
+                        setShowOrderRequestDialog(false);
+                        setReqQty('');
+                        setReqNote('');
+                      } catch (error: any) {
+                        toast.error(error.response?.data?.message || 'Failed to submit request');
+                      } finally {
+                        setReqLoading(false);
+                      }
+                    }}
+                  >
+                    {reqLoading ? 'Submitting...' : 'Submit Request'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {/* Trust Badges */}
             <div className="grid grid-cols-3 gap-4">

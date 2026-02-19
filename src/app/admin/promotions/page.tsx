@@ -16,7 +16,9 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,7 +58,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { adminApi, type PromotionFilters, type Promotion, type CreatePromotionData } from '@/lib/api/admin';
+import { adminApi, type PromotionFilters, type CreatePromotionData } from '@/lib/api/admin';
+import type { Promotion } from '@/types';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 const PROMOTION_TYPES = [
   { value: 'flash_sale', label: 'Flash Sale' },
@@ -88,6 +92,11 @@ export default function AdminPromotionsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<CreatePromotionData>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  const [agencyOptions, setAgencyOptions] = useState<{ label: string, value: string }[]>([]);
+  const [manufacturerOptions, setManufacturerOptions] = useState<{ label: string, value: string }[]>([]);
+  const [brandOptions, setBrandOptions] = useState<{ label: string, value: string }[]>([]);
 
   const fetchPromotions = useCallback(async () => {
     setLoading(true);
@@ -102,9 +111,25 @@ export default function AdminPromotionsPage() {
     }
   }, [filters, searchQuery]);
 
+  const fetchOptions = useCallback(async () => {
+    try {
+      const [agencies, manufacturers, brands] = await Promise.all([
+        adminApi.getAgencies(),
+        adminApi.getManufacturers(),
+        adminApi.getBrands()
+      ]);
+      setAgencyOptions(agencies.map(a => ({ label: a.name, value: a.id.toString() })));
+      setManufacturerOptions(manufacturers.map(m => ({ label: m, value: m })));
+      setBrandOptions(brands.map(b => ({ label: b.name, value: b.id.toString() })));
+    } catch (error) {
+      console.error('Failed to load options', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPromotions();
-  }, [fetchPromotions]);
+    fetchOptions();
+  }, [fetchPromotions, fetchOptions]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,11 +160,13 @@ export default function AdminPromotionsPage() {
     }
     setSubmitting(true);
     try {
+      const dataToSubmit = { ...formData };
+      // Ensure specific fields are correctly typed if needed
       if (isEditing && selectedPromotion) {
-        await adminApi.updatePromotion(selectedPromotion.id, formData);
+        await adminApi.updatePromotion(selectedPromotion.id, dataToSubmit);
         toast.success('Promotion updated successfully');
       } else {
-        await adminApi.createPromotion(formData as CreatePromotionData);
+        await adminApi.createPromotion(dataToSubmit as CreatePromotionData);
         toast.success('Promotion created successfully');
       }
       setShowFormDialog(false);
@@ -162,12 +189,16 @@ export default function AdminPromotionsPage() {
         description: fullPromotion.description,
         type: fullPromotion.type,
         discountType: fullPromotion.discountType,
-        discountValue: fullPromotion.discountValue ? parseFloat(fullPromotion.discountValue) : undefined,
+        discountValue: fullPromotion.discountValue ? parseFloat(fullPromotion.discountValue.toString()) : undefined,
         startDate: fullPromotion.startDate?.split('T')[0],
         endDate: fullPromotion.endDate?.split('T')[0],
         isActive: fullPromotion.isActive,
         bannerImage: fullPromotion.bannerImage,
         displayOrder: fullPromotion.displayOrder,
+        agencyIds: fullPromotion.agencyIds,
+        brandIds: fullPromotion.brandIds,
+        manufacturers: fullPromotion.manufacturers,
+        applicableTo: fullPromotion.applicableTo,
       });
       setIsEditing(true);
       setShowFormDialog(true);
@@ -182,9 +213,27 @@ export default function AdminPromotionsPage() {
       isActive: true,
       type: 'flash_sale',
       discountType: 'percentage',
+      applicableTo: 'products',
     });
     setIsEditing(false);
     setShowFormDialog(true);
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBanner(true);
+    try {
+      const url = await adminApi.uploadImage(file);
+      setFormData(prev => ({ ...prev, bannerImage: url }));
+      toast.success('Banner image uploaded successfully');
+    } catch (error) {
+      toast.error('Failed to upload banner image');
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = '';
+    }
   };
 
   const getStatusBadge = (promotion: Promotion) => {
@@ -295,7 +344,7 @@ export default function AdminPromotionsPage() {
                             <span className="font-medium">
                               {promotion.discountType === 'percentage'
                                 ? `${promotion.discountValue}%`
-                                : `Rs.${parseFloat(promotion.discountValue).toLocaleString()}`}
+                                : `Rs.${parseFloat(promotion.discountValue.toString()).toLocaleString()}`}
                             </span>
                           </div>
                         ) : (
@@ -386,7 +435,7 @@ export default function AdminPromotionsPage() {
 
       {/* Create/Edit Promotion Dialog */}
       <Dialog open={showFormDialog} onOpenChange={setShowFormDialog}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Edit Promotion' : 'Create Promotion'}</DialogTitle>
             <DialogDescription>
@@ -420,7 +469,7 @@ export default function AdminPromotionsPage() {
                 <Label>Type *</Label>
                 <Select
                   value={formData.type || ''}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, type: v }))}
+                  onValueChange={(v: any) => setFormData(prev => ({ ...prev, type: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
@@ -436,7 +485,7 @@ export default function AdminPromotionsPage() {
                 <Label>Discount Type</Label>
                 <Select
                   value={formData.discountType || ''}
-                  onValueChange={(v) => setFormData(prev => ({ ...prev, discountType: v }))}
+                  onValueChange={(v: any) => setFormData(prev => ({ ...prev, discountType: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select discount type" />
@@ -482,13 +531,127 @@ export default function AdminPromotionsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bannerImage">Banner Image URL</Label>
-              <Input
-                id="bannerImage"
-                value={formData.bannerImage || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, bannerImage: e.target.value }))}
-                placeholder="https://..."
-              />
+              <Label>Applicable to</Label>
+              <Select
+                value={formData.applicableTo || 'products'}
+                onValueChange={(v: any) => setFormData(prev => ({ ...prev, applicableTo: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Items</SelectItem>
+                  <SelectItem value="products">Specific Products</SelectItem>
+                  <SelectItem value="categories">Specific Categories</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtering Options */}
+            <div className="grid grid-cols-2 gap-4 p-4 border rounded-md bg-slate-50">
+              <div className="space-y-2">
+                <Label>Filter by Agencies</Label>
+                <MultiSelect
+                  options={agencyOptions}
+                  selected={formData.agencyIds?.map(String) || []}
+                  onChange={(vals) => setFormData(prev => ({
+                    ...prev,
+                    agencyIds: vals.map(Number)
+                  }))}
+                  placeholder="Select agencies..."
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Filter by Brands (by ID)</Label>
+                <MultiSelect
+                  options={brandOptions}
+                  selected={formData.brandIds?.map(String) || []}
+                  onChange={(vals) => setFormData(prev => ({
+                    ...prev,
+                    brandIds: vals.map(Number)
+                  }))}
+                  placeholder="Select brands..."
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="batchIds">Specific Batch IDs</Label>
+                <Input
+                  id="batchIds"
+                  placeholder="Enter batch IDs separated by comma (e.g. 1, 2, 3)"
+                  value={formData.batchIds?.join(', ') || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) setFormData(prev => ({ ...prev, batchIds: [] }));
+                    else {
+                      const ids = val.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+                      setFormData(prev => ({ ...prev, batchIds: ids }));
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">Applies only to items from these inventory batches.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Banner Image</Label>
+              <div className="grid gap-3">
+                {formData.bannerImage ? (
+                  <div className="relative aspect-[21/9] w-full bg-slate-100 rounded-lg overflow-hidden group border border-slate-200">
+                    <img
+                      src={formData.bannerImage}
+                      alt="Banner Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => setFormData(prev => ({ ...prev, bannerImage: '' }))}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" /> Remove
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="aspect-[21/9] w-full bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all group">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingBanner}
+                      onChange={handleBannerUpload}
+                    />
+                    {uploadingBanner ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                        <span className="text-xs font-medium text-slate-500">Uploading banner...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <span className="text-sm font-bold text-slate-700">Upload Banner Image</span>
+                        <span className="text-xs text-slate-500 mt-1">PNG, JPG or WEBP (Recommended 1200x500)</span>
+                      </>
+                    )}
+                  </label>
+                )}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <span className="text-xs text-slate-400 font-mono">URL:</span>
+                  </div>
+                  <Input
+                    id="bannerImage"
+                    value={formData.bannerImage || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bannerImage: e.target.value }))}
+                    placeholder="Or paste external image URL here..."
+                    className="pl-12 h-9 text-xs"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
-import { Header, Footer } from "@/components/layout";
+import { ConditionalShell } from "@/components/layout/conditional-shell";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,8 +21,6 @@ export const metadata: Metadata = {
   keywords: ["medicine", "healthcare", "B2B", "wholesale", "pharmacy", "doctors"],
 };
 
-import Script from "next/script";
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,14 +33,12 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <Header />
-          <main className="flex-1 pt-16 lg:pt-20">
+          <ConditionalShell>
             {children}
-          </main>
-          <Footer />
+          </ConditionalShell>
         </Providers>
         <Script
-          src="https://www.payhere.lk/lib/payhere.js"
+          src="https://sandbox.payhere.lk/lib/payhere.js"
           strategy="beforeInteractive"
         />
       </body>

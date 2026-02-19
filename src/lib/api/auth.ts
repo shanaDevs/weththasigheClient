@@ -1,17 +1,22 @@
 import api, { setAccessToken, clearTokens } from './client';
-import type { 
-  ApiResponse, 
-  AuthResponse, 
-  LoginCredentials, 
+import type {
+  ApiResponse,
+  AuthResponse,
+  LoginCredentials,
   RegisterData,
-  User 
+  User
 } from '@/types';
 
 export const authService = {
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>('/users/login', credentials);
-    const data = response.data.data as AuthResponse & { token?: string };
-    const token = data.accessToken || data.token;
+  async login(credentials: LoginCredentials): Promise<AuthResponse & { twoFactorRequired?: boolean, isDoctorAccount?: boolean }> {
+    const response = await api.post<ApiResponse<AuthResponse & { twoFactorRequired?: boolean, isDoctorAccount?: boolean }>>('/users/login', credentials);
+    const data = response.data.data;
+
+    if (data && data.twoFactorRequired) {
+      return data;
+    }
+
+    const token = data?.accessToken || (data as any)?.token;
     if (response.data.success && token) {
       setAccessToken(token);
     }
@@ -20,8 +25,8 @@ export const authService = {
 
   async register(data: RegisterData): Promise<AuthResponse> {
     const response = await api.post<ApiResponse<AuthResponse>>('/users/register', data);
-    const respData = response.data.data as AuthResponse & { token?: string };
-    const token = respData.accessToken || respData.token;
+    const respData = response.data.data;
+    const token = respData?.accessToken || (respData as any)?.token;
     if (response.data.success && token) {
       setAccessToken(token);
     }
@@ -51,5 +56,29 @@ export const authService = {
     } catch {
       return null;
     }
+  },
+
+  async request2FAEnable(): Promise<ApiResponse<void>> {
+    const response = await api.post<ApiResponse<void>>('/users/2fa/request-enable');
+    return response.data;
+  },
+
+  async confirm2FAEnable(code: string): Promise<ApiResponse<void>> {
+    const response = await api.post<ApiResponse<void>>('/users/2fa/confirm-enable', { code });
+    return response.data;
+  },
+
+  async disable2FA(): Promise<ApiResponse<void>> {
+    const response = await api.post<ApiResponse<void>>('/users/2fa/disable');
+    return response.data;
+  },
+
+  async verify2FALogin(identity: string, code: string, isDoctorAccount: boolean): Promise<AuthResponse> {
+    const response = await api.post<ApiResponse<AuthResponse>>('/users/2fa/verify-login', { identity, code, isDoctorAccount });
+    const data = response.data.data;
+    if (response.data.success && data.accessToken) {
+      setAccessToken(data.accessToken);
+    }
+    return data;
   },
 };

@@ -15,7 +15,8 @@ import {
   CheckCircle,
   XCircle,
   MoreHorizontal,
-  FolderTree
+  FolderTree,
+  Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,13 +58,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { adminApi, type ProductFilters } from '@/lib/api/admin';
-import type { Product, Category, Agency } from '@/types';
-import { cn } from '@/lib/utils';
+import type { Product, Category, Agency, ProductBatch, Supplier } from '@/types';
+import { cn, formatCurrency } from '@/lib/utils';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
+  const [brands, setBrands] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
   const [filters, setFilters] = useState<ProductFilters>({ page: 1, limit: 20 });
@@ -74,6 +76,14 @@ export default function AdminProductsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  // Batch management state
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
+  const [productBatches, setProductBatches] = useState<ProductBatch[]>([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [showAddBatchForm, setShowAddBatchForm] = useState(false);
+  const [batchFormData, setBatchFormData] = useState<Partial<ProductBatch>>({});
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   // Category management state
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -116,6 +126,15 @@ export default function AdminProductsPage() {
     }
   }, []);
 
+  const fetchBrands = useCallback(async () => {
+    try {
+      const result = await adminApi.getBrands();
+      setBrands(result);
+    } catch (error) {
+      console.error('Failed to load brands');
+    }
+  }, []);
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
@@ -123,7 +142,8 @@ export default function AdminProductsPage() {
   useEffect(() => {
     fetchCategories();
     fetchAgencies();
-  }, [fetchCategories, fetchAgencies]);
+    fetchBrands();
+  }, [fetchCategories, fetchAgencies, fetchBrands]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,6 +268,65 @@ export default function AdminProductsPage() {
       return <Badge variant="outline" className="gap-1 border-orange-500 text-orange-600"><AlertTriangle className="w-3 h-3" /> Low Stock</Badge>;
     }
     return <Badge variant="outline" className="gap-1 border-emerald-500 text-emerald-600"><CheckCircle className="w-3 h-3" /> In Stock</Badge>;
+  };
+
+  const fetchBatches = async (productId: number) => {
+    setLoadingBatches(true);
+    try {
+      const batches = await adminApi.getProductBatches(productId);
+      setProductBatches(batches);
+    } catch (error) {
+      toast.error('Failed to load batches');
+    } finally {
+      setLoadingBatches(false);
+    }
+  };
+
+  const fetchSuppliers = async () => {
+    try {
+      const sups = await adminApi.getSuppliers();
+      setSuppliers(sups);
+    } catch (error) {
+      console.error('Failed to load suppliers');
+    }
+  };
+
+  const openBatchDialog = (product: Product) => {
+    setSelectedProduct(product);
+    fetchBatches(product.id);
+    fetchSuppliers();
+    setShowBatchDialog(true);
+  };
+
+  const handleAddBatch = async () => {
+    if (!selectedProduct || !batchFormData.batchNumber || !batchFormData.expiryDate) {
+      toast.error('Batch number and expiry date are required');
+      return;
+    }
+
+    try {
+      await adminApi.addProductBatch(selectedProduct.id, batchFormData);
+      toast.success('Batch added successfully');
+      setShowAddBatchForm(false);
+      setBatchFormData({});
+      fetchBatches(selectedProduct.id);
+      fetchProducts(); // Refresh main stock
+    } catch (error) {
+      toast.error('Failed to add batch');
+    }
+  };
+
+  const handleDeleteBatch = async (batchId: number) => {
+    try {
+      await adminApi.deleteProductBatch(batchId);
+      toast.success('Batch deleted');
+      if (selectedProduct) {
+        fetchBatches(selectedProduct.id);
+        fetchProducts();
+      }
+    } catch (error) {
+      toast.error('Failed to delete batch');
+    }
   };
 
   return (
@@ -416,6 +495,9 @@ export default function AdminProductsPage() {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEditDialog(product)}>
                                   <Edit className="w-4 h-4 mr-2" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openBatchDialog(product)}>
+                                  <Package className="w-4 h-4 mr-2" /> Manage Batches
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
@@ -721,13 +803,39 @@ export default function AdminProductsPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="manufacturer">Manufacturer</Label>
-                <Input
-                  id="manufacturer"
-                  value={formData.manufacturer || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, manufacturer: e.target.value }))}
-                  placeholder="Enter manufacturer"
-                />
+                <Label htmlFor="agencyId">Agency (Distributor)</Label>
+                <Select
+                  value={formData.agencyId?.toString()}
+                  onValueChange={(val) => setFormData(prev => ({ ...prev, agencyId: parseInt(val) }))}
+                >
+                  <SelectTrigger id="agencyId">
+                    <SelectValue placeholder="Select Agency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agencies.map((agency) => (
+                      <SelectItem key={agency.id} value={agency.id.toString()}>
+                        {agency.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="brand">Brand</Label>
+                <Select
+                  value={formData.brand || ''}
+                  onValueChange={(v) => setFormData(prev => ({ ...prev, brand: v === '__none__' ? '' : v }))}
+                >
+                  <SelectTrigger id="brand">
+                    <SelectValue placeholder="Select a brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">None</SelectItem>
+                    {brands.map(b => (
+                      <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="genericName">Generic Name</Label>
@@ -1001,6 +1109,202 @@ export default function AdminProductsPage() {
             <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleCategorySubmit}>
               {isCategoryEditing ? 'Update Category' : 'Create Category'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Batch Management Dialog */}
+      <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-slate-900">
+              <Package className="w-5 h-5 text-emerald-600" />
+              Manage Batches: {selectedProduct?.name}
+            </DialogTitle>
+            <DialogDescription>
+              View and manage inventory batches for this product.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto py-4 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Active Batches</h3>
+              {!showAddBatchForm && (
+                <Button size="sm" onClick={() => setShowAddBatchForm(true)} className="bg-emerald-600 hover:bg-emerald-700" type="button">
+                  <Plus className="w-4 h-4 mr-1" /> Add Batch
+                </Button>
+              )}
+            </div>
+
+            {showAddBatchForm && (
+              <Card className="border-emerald-100 bg-emerald-50/30 animate-in slide-in-from-top-2 duration-200">
+                <CardHeader className="flex flex-row items-center justify-between py-3">
+                  <CardTitle className="text-sm font-bold text-emerald-800">New Batch Entry</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setShowAddBatchForm(false)} className="h-8 w-8 p-0" type="button">
+                    <XCircle className="w-4 h-4 text-slate-400" />
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4 pb-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="batchNo" className="text-xs text-slate-700">Batch Number *</Label>
+                      <Input
+                        id="batchNo"
+                        size={1}
+                        className="h-9 px-3 text-sm text-slate-900"
+                        value={batchFormData.batchNumber || ''}
+                        onChange={e => setBatchFormData({ ...batchFormData, batchNumber: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="expiry" className="text-xs text-slate-700">Expiry Date *</Label>
+                      <Input
+                        id="expiry"
+                        type="date"
+                        className="h-9 px-3 text-sm text-slate-900"
+                        value={batchFormData.expiryDate || ''}
+                        onChange={e => setBatchFormData({ ...batchFormData, expiryDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="batchQty" className="text-xs text-slate-700">Stock Quantity</Label>
+                      <Input
+                        id="batchQty"
+                        type="number"
+                        className="h-9 px-3 text-sm text-slate-900"
+                        placeholder="0"
+                        value={batchFormData.stockQuantity || ''}
+                        onChange={e => setBatchFormData({ ...batchFormData, stockQuantity: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="batchMRP" className="text-xs text-slate-700">MRP / Selling Price</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="batchMRP"
+                          type="number"
+                          className="h-9 px-2 text-xs text-slate-900"
+                          placeholder="MRP"
+                          value={batchFormData.mrp || ''}
+                          onChange={e => setBatchFormData({ ...batchFormData, mrp: parseFloat(e.target.value) })}
+                        />
+                        <Input
+                          id="batchSell"
+                          type="number"
+                          className="h-9 px-2 text-xs text-slate-900"
+                          placeholder="Sale"
+                          value={batchFormData.sellingPrice || ''}
+                          onChange={e => setBatchFormData({ ...batchFormData, sellingPrice: parseFloat(e.target.value) })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="batchSupplier" className="text-xs text-slate-700">Supplier</Label>
+                      <Select
+                        value={batchFormData.supplierId?.toString() || 'none'}
+                        onValueChange={v => setBatchFormData({ ...batchFormData, supplierId: v === 'none' ? undefined : parseInt(v) })}
+                      >
+                        <SelectTrigger className="h-9 text-sm text-slate-900">
+                          <SelectValue placeholder="Select supplier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {suppliers.map(s => (
+                            <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-9" onClick={handleAddBatch} type="button">
+                        Confirm Add Batch
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader className="bg-slate-50">
+                  <TableRow>
+                    <TableHead className="py-3 text-xs font-bold uppercase text-slate-500">Batch No</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Supplier</TableHead>
+                    <TableHead className="text-xs font-bold uppercase text-slate-500">Expiry</TableHead>
+                    <TableHead className="text-right text-xs font-bold uppercase text-slate-500">Price (MRP)</TableHead>
+                    <TableHead className="text-right text-xs font-bold uppercase text-slate-500">Sale Price</TableHead>
+                    <TableHead className="text-right text-xs font-bold uppercase text-slate-500">Stock</TableHead>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingBatches ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10">
+                        <Loader2 className="w-6 h-6 animate-spin mx-auto text-emerald-500" />
+                        <span className="text-sm text-slate-500 mt-2 block font-normal">Loading batches...</span>
+                      </TableCell>
+                    </TableRow>
+                  ) : productBatches.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-10 text-slate-400 italic font-normal">
+                        No batches found for this product.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    productBatches.map(batch => (
+                      <TableRow key={batch.id} className={cn(
+                        new Date(batch.expiryDate) < new Date() ? 'bg-red-50/50' : ''
+                      )}>
+                        <TableCell className="font-bold text-slate-700 text-sm whitespace-nowrap">{batch.batchNumber}</TableCell>
+                        <TableCell className="text-xs text-slate-600">{(batch as any).supplier?.name || '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className={cn(
+                              "text-xs font-medium whitespace-nowrap",
+                              new Date(batch.expiryDate) < new Date() ? "text-red-600" : "text-slate-900"
+                            )}>
+                              {new Date(batch.expiryDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric', day: 'numeric' })}
+                            </span>
+                            {new Date(batch.expiryDate) < new Date() && (
+                              <Badge variant="destructive" className="w-fit scale-75 -ml-2 h-4 px-1 text-[8px]">EXPIRED</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right text-slate-500 font-mono text-xs">
+                          {formatCurrency(batch.mrp || 0)}
+                        </TableCell>
+                        <TableCell className="text-right text-emerald-600 font-bold font-mono text-xs">
+                          {formatCurrency(batch.sellingPrice || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={batch.stockQuantity <= 0 ? 'destructive' : 'outline'} className="font-mono text-[10px] h-5">
+                            {batch.stockQuantity}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleDeleteBatch(batch.id)}
+                            type="button"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+          <DialogFooter className="pt-4 border-t border-slate-100">
+            <Button variant="outline" onClick={() => setShowBatchDialog(false)} type="button">Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

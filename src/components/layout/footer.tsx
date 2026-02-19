@@ -28,6 +28,7 @@ const footerLinks = {
     { label: 'New Arrivals', href: '/products?sort=newest' },
   ],
   support: [
+    { label: 'Register as Doctor', href: '/register-doctor' },
     { label: 'Help Center', href: '/help' },
     { label: 'Shipping', href: '/shipping' },
     { label: 'Returns', href: '/returns' },

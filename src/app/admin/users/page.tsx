@@ -20,7 +20,8 @@ import {
   Stethoscope,
   Plus,
   Upload,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,15 @@ export default function AdminUsersPage() {
       toast.error('Failed to update status');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleResendEmail = async (user: User) => {
+    try {
+      await adminApi.resendUserVerification(user.id);
+      toast.success(`Verification email resent to ${user.email || user.phone}`);
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to resend verification email');
     }
   };
 
@@ -368,6 +378,11 @@ export default function AdminUsersPage() {
                             {user.doctorProfile && (
                               <DropdownMenuItem onClick={() => openCreditDialog(user)}>
                                 <CreditCard className="w-4 h-4 mr-2" /> Edit Credit
+                              </DropdownMenuItem>
+                            )}
+                            {!user.isVerified && user.role.name !== 'doctor' && (
+                              <DropdownMenuItem onClick={() => handleResendEmail(user)}>
+                                <Mail className="w-4 h-4 mr-2" /> Resend Verification
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />

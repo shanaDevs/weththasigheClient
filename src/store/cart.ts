@@ -99,11 +99,11 @@ export const useCartStore = create<CartState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await cartService.clearCart();
-      set({ cart: null, isLoading: false });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to clear cart';
-      set({ error: message, isLoading: false });
-      throw error;
+      console.warn('Failed to clear cart on server, it may have already been converted/cleared:', error);
+    } finally {
+      // Always clear local state even if server request fails
+      set({ cart: null, isLoading: false });
     }
   },
 

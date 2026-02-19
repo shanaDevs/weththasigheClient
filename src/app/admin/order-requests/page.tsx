@@ -46,6 +46,7 @@ export default function AdminOrderRequestsPage() {
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 0 });
     const [filters, setFilters] = useState({ page: 1, limit: 10, status: 'pending' as any });
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedRequest, setSelectedRequest] = useState<OrderRequest | null>(null);
     const [showProcessDialog, setShowProcessDialog] = useState(false);
     const [processAction, setProcessAction] = useState<'approved' | 'rejected'>('approved');
@@ -56,7 +57,7 @@ export default function AdminOrderRequestsPage() {
     const fetchRequests = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await adminApi.getOrderRequests(filters);
+            const result = await adminApi.getOrderRequests({ ...filters, search: searchQuery });
             setRequests(result.data);
             setPagination(result.pagination);
         } catch (error) {
@@ -64,7 +65,7 @@ export default function AdminOrderRequestsPage() {
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters, searchQuery]);
 
     useEffect(() => {
         fetchRequests();
@@ -109,7 +110,7 @@ export default function AdminOrderRequestsPage() {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -120,6 +121,15 @@ export default function AdminOrderRequestsPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                            placeholder="Search user/product..."
+                            className="pl-9"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
                     <Button
                         variant={filters.status === 'pending' ? 'default' : 'outline'}
                         onClick={() => setFilters({ ...filters, status: 'pending', page: 1 })}
@@ -154,6 +164,7 @@ export default function AdminOrderRequestsPage() {
                                 <TableHead>Product</TableHead>
                                 <TableHead className="text-center">Req. Qty</TableHead>
                                 <TableHead className="text-center">Limit</TableHead>
+                                <TableHead className="text-center">Released</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -162,14 +173,14 @@ export default function AdminOrderRequestsPage() {
                             {loading ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        <TableCell colSpan={7} className="h-16 animate-pulse">
+                                        <TableCell colSpan={8} className="h-16 animate-pulse">
                                             <div className="h-4 bg-slate-100 rounded w-full" />
                                         </TableCell>
                                     </TableRow>
                                 ))
                             ) : requests.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="h-32 text-center text-slate-500 italic">
+                                    <TableCell colSpan={8} className="h-32 text-center text-slate-500 italic">
                                         No order requests found.
                                     </TableCell>
                                 </TableRow>
@@ -207,6 +218,9 @@ export default function AdminOrderRequestsPage() {
                                         </TableCell>
                                         <TableCell className="text-center text-slate-500">
                                             {request.product?.maxOrderQuantity}
+                                        </TableCell>
+                                        <TableCell className="text-center font-medium text-blue-600">
+                                            {request.releasedQuantity || '—'}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={statusColors[request.status]}>

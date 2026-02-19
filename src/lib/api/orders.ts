@@ -1,10 +1,10 @@
 import api from './client';
-import type { 
-  ApiResponse, 
-  Order, 
-  CreateOrderInput, 
+import type {
+  ApiResponse,
+  Order,
+  CreateOrderInput,
   OrderQueryParams,
-  Pagination 
+  Pagination
 } from '@/types';
 
 interface OrdersResponse {
@@ -35,6 +35,16 @@ export const orderService = {
 
   async cancelOrder(id: number, notes?: string): Promise<Order> {
     const response = await api.post<ApiResponse<Order>>(`/orders/${id}/cancel`, { notes });
+    return response.data.data;
+  },
+
+  async verifyPayment(orderNumber: string): Promise<Order> {
+    const response = await api.get<ApiResponse<Order>>(`/payments/verify/${orderNumber}`);
+    return response.data.data;
+  },
+
+  async getPaymentData(orderId: string | number): Promise<any> {
+    const response = await api.get<ApiResponse<any>>(`/orders/${orderId}/payment-data`);
     return response.data.data;
   },
 };

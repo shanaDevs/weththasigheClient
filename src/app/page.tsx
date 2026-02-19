@@ -141,11 +141,11 @@ export default function HomePage() {
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>
                 </Link>
-                <Link href="/register">
+                {/* <Link href="/register">
                   <Button size="lg" variant="outline" className="border-2 border-slate-300 hover:border-emerald-500 hover:text-emerald-600 px-8 h-12 text-base">
                     Register as Doctor
                   </Button>
-                </Link>
+                </Link> */}
               </div>
 
               <div className="flex items-center gap-8 pt-4">

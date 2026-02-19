@@ -35,6 +35,7 @@ const navLinks = [
   { href: '/products', label: 'Products' },
   { href: '/categories', label: 'Categories' },
   { href: '/promotions', label: 'Offers' },
+  { href: '/register-doctor', label: 'For Doctors' },
 ];
 
 export function Header() {
@@ -205,7 +206,7 @@ export function Header() {
                     </p>
                     <p className="text-xs text-slate-500">{user?.phone}</p>
                   </div>
-                  {['admin', 'super_admin', 'manager'].includes(user?.role?.name?.toLowerCase() || '') && (
+                  {['admin', 'super_admin', 'manager'].includes(user?.role?.name?.toLowerCase() || '') && user?.authenticatedBy === 'phone' && (
                     <>
                       <DropdownMenuItem asChild>
                         <Link href="/admin" className="flex items-center cursor-pointer text-emerald-600">

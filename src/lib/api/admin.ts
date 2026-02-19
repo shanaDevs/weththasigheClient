@@ -3,6 +3,7 @@ import type {
   ApiResponse,
   Product,
   Order,
+  Payment,
   SystemSetting,
   Category,
   AdminCreateUserInput,
@@ -12,7 +13,10 @@ import type {
   Doctor,
   User,
   Role,
-  Agency
+  Permission,
+  Agency,
+  Discount,
+  Brand
 } from '@/types';
 
 // Types for Admin API
@@ -103,6 +107,11 @@ export interface CreatePromotionData {
   isActive?: boolean;
   productIds?: number[];
   categoryIds?: number[];
+  agencyIds?: number[];
+  brandIds?: number[];
+  manufacturers?: string[];
+  batchIds?: number[];
+  applicableTo?: string;
   bannerImage?: string;
   displayOrder?: number;
 }
@@ -185,6 +194,16 @@ export const adminApi = {
 
   async deleteProduct(id: number): Promise<void> {
     await api.delete(`/products/${id}`);
+  },
+
+  async getManufacturers(): Promise<string[]> {
+    const response = await api.get<ApiResponse<string[]>>('/products/manufacturers');
+    return response.data.data;
+  },
+
+  async getAgencies(): Promise<Agency[]> {
+    const response = await api.get<ApiResponse<Agency[]>>('/agencies');
+    return response.data.data;
   },
 
   async getLowStockProducts(): Promise<Product[]> {
@@ -292,6 +311,10 @@ export const adminApi = {
   },
 
   async uploadCategoryImage(file: File): Promise<string> {
+    return this.uploadImage(file);
+  },
+
+  async uploadImage(file: File): Promise<string> {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -324,14 +347,12 @@ export const adminApi = {
     return response.data.data;
   },
 
-  async updateDoctorStatus(id: number, isActive: boolean): Promise<Doctor> {
-    const response = await api.patch<ApiResponse<Doctor>>(`/doctors/${id}/status`, { isActive });
-    return response.data.data;
+  async verifyDoctor(id: number, data: { status: 'approved' | 'rejected'; notes?: string; creditLimit?: number; paymentTerms?: number }): Promise<void> {
+    await api.post(`/doctors/${id}/verify`, data);
   },
 
-  async updateDoctorCredit(id: number, creditLimit: number): Promise<Doctor> {
-    const response = await api.patch<ApiResponse<Doctor>>(`/doctors/${id}/credit`, { creditLimit });
-    return response.data.data;
+  async updateDoctorCredit(id: number, creditLimit: number): Promise<void> {
+    await api.patch(`/doctors/${id}/credit-limit`, { creditLimit });
   },
 
   // Users
@@ -406,6 +427,15 @@ export const adminApi = {
     return response.data.data;
   },
 
+  async updateProductBatch(batchId: number, data: Partial<ProductBatch>): Promise<ProductBatch> {
+    const response = await api.put<ApiResponse<ProductBatch>>(`/products/batches/${batchId}`, data);
+    return response.data.data;
+  },
+
+  async deleteProductBatch(batchId: number): Promise<void> {
+    await api.delete(`/products/batches/${batchId}`);
+  },
+
   // Agencies
   async getAgencies(): Promise<Agency[]> {
     const response = await api.get<ApiResponse<Agency[]>>('/agencies');
@@ -419,6 +449,217 @@ export const adminApi = {
 
   async updateAgency(id: number, data: Partial<Agency>): Promise<Agency> {
     const response = await api.put<ApiResponse<Agency>>(`/agencies/${id}`, data);
+    return response.data.data;
+  },
+
+  async deleteAgency(id: number): Promise<void> {
+    await api.delete(`/agencies/${id}`);
+  },
+
+  // Roles & Permissions
+  async getRoles(): Promise<Role[]> {
+    const response = await api.get<ApiResponse<Role[]>>('/roles');
+    return response.data.data || [];
+  },
+
+  async getPermissions(): Promise<Permission[]> {
+    const response = await api.get<ApiResponse<Permission[]>>('/roles/permissions');
+    return response.data.data || [];
+  },
+
+  async updateRolePermissions(roleId: number, permissionIds: number[]): Promise<void> {
+    await api.put(`/roles/${roleId}/permissions`, { permissionIds });
+  },
+
+  // Categories
+  async getCategories(params?: { includeInactive?: boolean; flat?: boolean }): Promise<Category[]> {
+    const response = await api.get<ApiResponse<Category[]>>('/categories', {
+      params: { ...params, includeInactive: params?.includeInactive ? 'true' : undefined, flat: params?.flat ? 'true' : undefined }
+    });
+    return response.data.data || [];
+  },
+
+  async getCategory(id: number): Promise<Category> {
+    const response = await api.get<ApiResponse<Category>>(`/categories/${id}`);
+    return response.data.data;
+  },
+
+  async createCategory(data: Partial<Category>): Promise<Category> {
+    const response = await api.post<ApiResponse<Category>>('/categories', data);
+    return response.data.data;
+  },
+
+  async updateCategory(id: number, data: Partial<Category>): Promise<Category> {
+    const response = await api.put<ApiResponse<Category>>(`/categories/${id}`, data);
+    return response.data.data;
+  },
+
+  async deleteCategory(id: number): Promise<void> {
+    await api.delete(`/categories/${id}`);
+  },
+
+  async reorderCategories(orders: { id: number; sortOrder: number }[]): Promise<void> {
+    await api.post('/categories/reorder', { categories: orders });
+  },
+
+  async getCategoryProducts(categoryId: number, params?: { page?: number; limit?: number }): Promise<{ products: Product[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
+    const response = await api.get<ApiResponse<{ products: Product[]; pagination: any }>>(`/categories/${categoryId}/products`, { params });
+    return response.data.data as any;
+  },
+
+  // Discounts
+  async getDiscounts(params?: { page?: number; limit?: number; type?: string; isActive?: boolean; search?: string }): Promise<{ discounts: Discount[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> {
+    const response = await api.get<ApiResponse<any>>('/discounts', { params });
+    return response.data.data;
+  },
+
+  async getDiscount(id: number): Promise<Discount & { stats: { orderCount: number; totalSaved: number } }> {
+    const response = await api.get<ApiResponse<any>>(`/discounts/${id}`);
+    return response.data.data;
+  },
+
+  async createDiscount(data: Partial<Discount>): Promise<Discount> {
+    const response = await api.post<ApiResponse<Discount>>('/discounts', data);
+    return response.data.data;
+  },
+
+  async updateDiscount(id: number, data: Partial<Discount>): Promise<Discount> {
+    const response = await api.put<ApiResponse<Discount>>(`/discounts/${id}`, data);
+    return response.data.data;
+  },
+
+  async deleteDiscount(id: number): Promise<void> {
+    await api.delete(`/discounts/${id}`);
+  },
+
+  async validateDiscountCode(code: string, cartTotal: number, items: any[] = []): Promise<{ valid: boolean; discountAmount?: number; data?: Partial<Discount> }> {
+    const response = await api.post<any>('/discounts/validate', { code, cartTotal, items });
+    return response.data;
+  },
+
+  // Brands / Manufacturers
+  async getManufacturers(): Promise<string[]> {
+    const response = await api.get<ApiResponse<string[]>>('/products/manufacturers');
+    return response.data.data;
+  },
+
+  async getBrands(): Promise<Brand[]> {
+    const response = await api.get<ApiResponse<Brand[]>>('/brands');
+    return response.data.data;
+  },
+
+  async createBrand(data: Partial<Brand>): Promise<Brand> {
+    const response = await api.post<ApiResponse<Brand>>('/brands', data);
+    return response.data.data;
+  },
+
+  async updateBrand(id: number, data: Partial<Brand>): Promise<Brand> {
+    const response = await api.put<ApiResponse<Brand>>(`/brands/${id}`, data);
+    return response.data.data;
+  },
+
+  async deleteBrand(id: number): Promise<void> {
+    await api.delete(`/brands/${id}`);
+  },
+
+  async resendUserVerification(id: number): Promise<void> {
+    await api.post('/users/admin/resend-verification', { id });
+  },
+
+  async resendDoctorVerification(id: number): Promise<{ sentTo: string }> {
+    const response = await api.post<ApiResponse<{ sentTo: string }>>('/users/admin/resend-doctor-verification', { id });
+    return response.data.data;
+  },
+
+  // Suppliers
+  async getSuppliers(params?: any): Promise<any> {
+    const response = await api.get('/suppliers', { params });
+    return response.data.data;
+  },
+
+  async getSupplier(id: number): Promise<any> {
+    const response = await api.get(`/suppliers/${id}`);
+    return response.data.data;
+  },
+
+  async createSupplier(data: any): Promise<any> {
+    const response = await api.post('/suppliers', data);
+    return response.data.data;
+  },
+
+  async updateSupplier(id: number, data: any): Promise<any> {
+    const response = await api.put(`/suppliers/${id}`, data);
+    return response.data.data;
+  },
+
+  async deleteSupplier(id: number): Promise<any> {
+    const response = await api.delete(`/suppliers/${id}`);
+    return response.data.data;
+  },
+
+  // Purchase Orders
+  async getPurchaseOrders(params?: any): Promise<any> {
+    const response = await api.get('/purchase-orders', { params });
+    return response.data.data;
+  },
+
+  async getPurchaseOrder(id: number): Promise<any> {
+    const response = await api.get(`/purchase-orders/${id}`);
+    return response.data.data;
+  },
+
+  async createPurchaseOrder(data: any): Promise<any> {
+    const response = await api.post('/purchase-orders', data);
+    return response.data.data;
+  },
+
+  // Payments
+  async getPayments(filters: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    method?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    doctorId?: number;
+    userId?: number;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
+  } = {}): Promise<PaginatedResponse<Payment>> {
+    const response = await api.get<ApiResponse<{ payments: Payment[]; pagination: PaginatedResponse<Payment>['pagination'] }>>('/payments', {
+      params: filters,
+    });
+    return {
+      data: response.data.data?.payments || [],
+      pagination: response.data.data?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 },
+    };
+  },
+
+  async getPaymentStats(startDate?: string, endDate?: string): Promise<{
+    totalPaid: number;
+    totalRefunds: number;
+    netPayments: number;
+    byMethod: { method: string; count: number; total: number }[];
+  }> {
+    const response = await api.get<ApiResponse<any>>('/payments/stats', {
+      params: { startDate, endDate },
+    });
+    return response.data.data;
+  },
+
+  async getOrderPayments(orderId: number): Promise<Payment[]> {
+    const response = await api.get<ApiResponse<Payment[]>>(`/payments/order/${orderId}`);
+    return response.data.data || [];
+  },
+
+  async addPayment(orderId: number, data: { amount: number; method: string; transactionId?: string; notes?: string }): Promise<any> {
+    const response = await api.post<ApiResponse<any>>(`/payments/order/${orderId}`, data);
+    return response.data.data;
+  },
+
+  async processRefund(paymentId: number, data: { amount?: number; reason: string }): Promise<any> {
+    const response = await api.post<ApiResponse<any>>(`/payments/${paymentId}/refund`, data);
     return response.data.data;
   },
 };

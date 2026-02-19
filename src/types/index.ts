@@ -1,9 +1,18 @@
-// User & Auth Types
 export interface Role {
   id: number;
   name: string;
   displayName: string;
   level: number;
+  permissions?: Permission[];
+}
+
+export interface Permission {
+  id: number;
+  name: string;
+  displayName: string;
+  module: string;
+  action: string;
+  description?: string;
 }
 
 export interface User {
@@ -15,6 +24,8 @@ export interface User {
   role: Role;
   roleId?: number;
   isDisabled?: boolean;
+  twoFactorEnabled?: boolean;
+  authenticatedBy?: 'phone' | 'userName';
   doctorProfile?: {
     id: number;
     licenseNumber: string;
@@ -31,8 +42,10 @@ export interface AuthResponse {
 }
 
 export interface LoginCredentials {
-  phone: string;
-  password: string;
+  identifier?: string;  // Generic field — backend resolves to phone or userName
+  phone?: string;
+  userName?: string;
+  password?: string;
 }
 
 export interface RegisterData {
@@ -57,21 +70,103 @@ export interface Category {
   description?: string;
   icon?: string;
   image?: string;
+  sortOrder?: number;
+  isActive?: boolean;
   productCount?: number;
+  parentId?: number | null;
+  parent?: Pick<Category, 'id' | 'name' | 'slug'>;
   children?: Category[];
-  parentId?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Discount {
+  id: number;
+  name: string;
+  code?: string;
+  description?: string;
+  type: 'percentage' | 'fixed_amount' | 'buy_x_get_y' | 'free_shipping';
+  value: string | number;
+  minOrderAmount?: string | number;
+  minQuantity?: number;
+  maxDiscountAmount?: string | number;
+  applicableTo?: 'all' | 'categories' | 'products' | 'users';
+  applicableIds?: number[];
+  excludedIds?: number[];
+  agencyIds?: number[];
+  manufacturers?: string[];
+  batchIds?: number[];
+  usageLimit?: number;
+  usageLimitPerUser?: number;
+  usedCount?: number;
+  startDate?: string;
+  endDate?: string;
+  isAutomatic?: boolean;
+  isStackable?: boolean;
+  priority?: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
+
+export interface Promotion {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  shortDescription?: string;
+  type: 'flash_sale' | 'seasonal' | 'clearance' | 'bundle' | 'bogo' | 'volume_discount' | 'new_customer' | 'loyalty' | 'banner_only';
+  bannerImage?: string;
+  thumbnailImage?: string;
+  displayOnHomepage?: boolean;
+  displayOrder?: number;
+  discountType?: 'percentage' | 'fixed_amount' | 'special_price';
+  discountValue?: string | number;
+  applicableTo?: 'all' | 'categories' | 'products';
+  productIds?: number[];
+  categoryIds?: number[];
+  agencyIds?: number[];
+  brandIds?: number[];
+  manufacturers?: string[];
+  batchIds?: number[];
+  minPurchaseAmount?: string | number;
+  maxUsageLimit?: number;
+  usedCount?: number;
+  startDate: string;
+  endDate: string;
+  bundleProducts?: { productId: number; quantity: number }[];
+  bundlePrice?: string | number;
+  status?: 'draft' | 'scheduled' | 'active' | 'paused' | 'ended' | 'cancelled';
+  isActive?: boolean;
+  termsAndConditions?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Agency {
   id: number;
   name: string;
-  code: string;
+  code?: string;
+  description?: string;
   contactPerson?: string;
   phone?: string;
   email?: string;
   address?: string;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  logo?: string;
   isActive: boolean;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Product {
@@ -93,7 +188,9 @@ export interface Product {
   taxEnabled: boolean;
   taxPercentage: string;
   genericName?: string;
-  manufacturer?: string;
+  brand?: string;
+  brandId?: number;
+  manufacturer?: string; //- @deprecated
   agencyId?: number;
   agency?: Agency;
   dosageForm?: string;
@@ -107,6 +204,8 @@ export interface Product {
   category?: Category;
   priority?: number;
   isFeatured?: boolean;
+  isActive?: boolean;
+  status?: string;
   bulkPrices?: BulkPrice[];
 }
 
@@ -199,11 +298,78 @@ export interface StatusHistory {
 
 export interface Payment {
   id: number;
+  orderId: number;
   amount: string;
+  currency?: string;
   method: string;
   status: string;
   transactionId?: string;
+  provider?: string;
+  providerTransactionId?: string;
+  chequeNumber?: string;
+  bankName?: string;
+  refundedAmount?: string;
+  refundReason?: string;
+  refundedAt?: string;
+  paidAt?: string;
+  failedAt?: string;
+  errorMessage?: string;
+  notes?: string;
+  createdBy?: number;
   createdAt: string;
+  updatedAt?: string;
+  order?: {
+    id: number;
+    orderNumber: string;
+    total: string;
+    paidAmount?: string;
+    dueAmount?: string;
+    userId: number;
+    doctorId?: number;
+    paymentStatus?: string;
+    status?: string;
+    createdAt?: string;
+    user?: {
+      id: number;
+      firstName: string;
+      lastName?: string;
+      userName: string;
+      phone: string;
+    };
+    doctor?: {
+      id: number;
+      licenseNumber: string;
+      hospitalClinic?: string;
+      specialization?: string;
+      user?: {
+        id: number;
+        firstName: string;
+        lastName?: string;
+        userName: string;
+        phone: string;
+      };
+    };
+    items?: {
+      id: number;
+      productId: number;
+      productName: string;
+      quantity: number;
+      unitPrice: string;
+      total: string;
+    }[];
+  };
+  creator?: {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    userName: string;
+  };
+  refunder?: {
+    id: number;
+    firstName: string;
+    lastName?: string;
+    userName: string;
+  };
 }
 
 export interface Order {
@@ -247,7 +413,7 @@ export type OrderStatus =
   | 'returned'
   | 'refunded';
 
-export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'credit' | 'refunded';
+export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'credit' | 'failed' | 'refunded';
 
 export interface CreateOrderInput {
   paymentMethod: 'cash' | 'card' | 'upi' | 'net_banking' | 'credit' | 'cod' | 'payhere';
@@ -312,29 +478,7 @@ export interface CreditSummary {
   }[];
 }
 
-// Discount & Promotion Types
-export interface Discount {
-  id: number;
-  name: string;
-  code: string;
-  type: 'percentage' | 'fixed' | 'free_shipping';
-  value: number;
-  discountAmount?: number;
-  description?: string;
-}
 
-export interface Promotion {
-  id: number;
-  name: string;
-  description?: string;
-  type: 'flash_sale' | 'bundle' | 'bogo' | 'percentage_off' | 'fixed_off' | 'bulk_discount';
-  bannerImage?: string;
-  discountValue?: number;
-  discountType?: string;
-  startDate: string;
-  endDate: string;
-  displayOrder?: number;
-}
 
 // Inventory & Order Request Types
 export interface Supplier {
@@ -383,10 +527,14 @@ export interface OrderRequest {
 export interface AdminCreateUserInput {
   firstName: string;
   lastName?: string;
+  userName: string;
   phone: string;
+  email?: string;
   roleName: string;
   licenseNumber?: string;
   licensePhoto?: string;
+  specialization?: string;
+  hospitalClinic?: string;
 }
 
 // Settings Types

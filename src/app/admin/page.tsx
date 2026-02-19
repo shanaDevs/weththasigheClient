@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
+import {
+  Package,
+  ShoppingCart,
+  Users,
   DollarSign,
   TrendingUp,
   ArrowUpRight,
@@ -16,7 +16,8 @@ import {
   Truck,
   Eye,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Stethoscope
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -166,9 +167,8 @@ export default function AdminDashboard() {
                     <div className={`p-3 rounded-xl ${colorClasses[stat.color as keyof typeof colorClasses]}`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    <div className={`flex items-center gap-1 text-sm font-medium ${
-                      stat.trend === 'up' ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
+                    <div className={`flex items-center gap-1 text-sm font-medium ${stat.trend === 'up' ? 'text-emerald-600' : 'text-red-600'
+                      }`}>
                       {stat.change}
                       {stat.trend === 'up' ? (
                         <ArrowUpRight className="w-4 h-4" />
@@ -328,6 +328,12 @@ export default function AdminDashboard() {
               <Button variant="outline" className="w-full h-20 flex flex-col gap-2">
                 <Package className="w-6 h-6" />
                 <span>Add Product</span>
+              </Button>
+            </Link>
+            <Link href="/admin/doctors">
+              <Button variant="outline" className="w-full h-20 flex flex-col gap-2 text-emerald-600 border-emerald-100 hover:bg-emerald-50">
+                <Stethoscope className="w-6 h-6" />
+                <span>Manage Doctors</span>
               </Button>
             </Link>
             <Link href="/admin/orders">
