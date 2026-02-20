@@ -2,6 +2,8 @@ export { api, setAccessToken, getAccessToken, clearTokens } from './client';
 export { authService } from './auth';
 export { productService } from './products';
 export { categoryService } from './categories';
+export { brandService } from './brands';
+export { agencyService } from './agencies';
 export { cartService } from './cart';
 export { orderService } from './orders';
 export { doctorService } from './doctors';

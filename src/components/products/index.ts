@@ -6,3 +6,4 @@ export { QuickViewDialog } from './quick-view-dialog';
 export { ProductBadges } from './product-badges';
 export { PriceRangeSlider } from './price-range-slider';
 export { RecentlyViewedProducts, addToRecentlyViewed, getRecentlyViewedIds } from './recently-viewed';
+export { BulkOrderTable } from './bulk-order-table';

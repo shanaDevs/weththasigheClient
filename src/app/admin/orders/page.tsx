@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  ShoppingCart, 
-  Search, 
+import {
+  ShoppingCart,
+  Search,
   Filter,
   Download,
   Eye,
@@ -50,6 +50,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { adminApi, type OrderFilters, type OrderStats } from '@/lib/api/admin';
 import type { Order } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 
 const ORDER_STATUSES = [
   { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-700' },
@@ -78,6 +79,7 @@ const PAYMENT_STATUSES = [
 ];
 
 export default function AdminOrdersPage() {
+  const { settings, formatPrice } = useSettings();
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -255,7 +257,7 @@ export default function AdminOrdersPage() {
                   <Package className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">Rs.{parseFloat(stats.totalRevenue || '0').toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{formatPrice(stats.totalRevenue || '0')}</p>
                   <p className="text-sm text-slate-500">Total Revenue</p>
                 </div>
               </div>
@@ -295,9 +297,9 @@ export default function AdminOrdersPage() {
           <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[220px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input 
-                placeholder="Search by order #, customer..." 
-                className="pl-10" 
+              <Input
+                placeholder="Search by order #, customer..."
+                className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -335,8 +337,8 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
             )}
-            <Select 
-              value={filters.status || 'all'} 
+            <Select
+              value={filters.status || 'all'}
               onValueChange={(v) => setFilters(prev => ({ ...prev, status: v === 'all' ? undefined : v, page: 1 }))}
             >
               <SelectTrigger className="w-40">
@@ -406,7 +408,7 @@ export default function AdminOrdersPage() {
                       </TableCell>
                       <TableCell>{order.itemCount} items</TableCell>
                       <TableCell className="text-right font-medium">
-                        Rs.{parseFloat(order.total).toLocaleString()}
+                        {formatPrice(order.total)}
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">{order.paymentMethod}</Badge>
@@ -489,7 +491,7 @@ export default function AdminOrdersPage() {
                           <p className="text-sm text-slate-500">SKU: {item.productSku} × {item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-medium">Rs.{parseFloat(item.total).toLocaleString()}</p>
+                      <p className="font-medium">{formatPrice(item.total)}</p>
                     </div>
                   ))}
                 </div>
@@ -518,22 +520,22 @@ export default function AdminOrdersPage() {
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
                       <span className="text-slate-500">Subtotal</span>
-                      <span>Rs.{parseFloat(selectedOrder.subtotal).toLocaleString()}</span>
+                      <span>{formatPrice(selectedOrder.subtotal)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Tax</span>
-                      <span>Rs.{parseFloat(selectedOrder.taxAmount).toLocaleString()}</span>
+                      <span>{formatPrice(selectedOrder.taxAmount)}</span>
                     </div>
                     {parseFloat(selectedOrder.discountAmount || '0') > 0 && (
                       <div className="flex justify-between text-emerald-600">
                         <span>Discount</span>
-                        <span>-Rs.{parseFloat(selectedOrder.discountAmount).toLocaleString()}</span>
+                        <span>-{formatPrice(selectedOrder.discountAmount)}</span>
                       </div>
                     )}
                     <Separator className="my-2" />
                     <div className="flex justify-between font-semibold text-base">
                       <span>Total</span>
-                      <span>Rs.{parseFloat(selectedOrder.total).toLocaleString()}</span>
+                      <span>{formatPrice(selectedOrder.total)}</span>
                     </div>
                   </div>
                 </div>
@@ -578,7 +580,7 @@ export default function AdminOrdersPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (optional)</Label>
-              <Textarea 
+              <Textarea
                 id="notes"
                 value={statusNotes}
                 onChange={(e) => setStatusNotes(e.target.value)}
@@ -589,8 +591,8 @@ export default function AdminOrdersPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStatusDialog(false)}>Cancel</Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700" 
+            <Button
+              className="bg-emerald-600 hover:bg-emerald-700"
               onClick={handleUpdateStatus}
               disabled={updatingStatus || !newStatus}
             >

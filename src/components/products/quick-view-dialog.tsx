@@ -31,8 +31,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useCartStore, useAuthStore } from '@/store';
-import { formatCurrency, calculateDiscount, getImageUrl } from '@/lib/utils';
+import { calculateDiscount, getImageUrl } from '@/lib/utils';
 import { getProductPrice } from '@/lib/product-utils';
+import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 
@@ -44,7 +45,9 @@ interface QuickViewDialogProps {
 
 export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialogProps) {
   const { user, isAuthenticated } = useAuthStore();
-  const { addToCart, getItemByProductId, updateQuantity } = useCartStore();
+  const { addToCart, updateQuantity } = useCartStore();
+  const cartItem = useCartStore(state => state.cart?.items.find(item => item.productId === product?.id));
+  const { settings, formatPrice } = useSettings();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -52,7 +55,6 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
 
   if (!product) return null;
 
-  const cartItem = getItemByProductId(product.id);
   const displayPrice = getProductPrice(product, user);
   const discount = calculateDiscount(product.mrp, displayPrice);
   const isOutOfStock = product.stockQuantity <= 0;
@@ -75,7 +77,9 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
 
   const handleQuantityChange = (delta: number) => {
     const newQty = quantity + delta;
-    if (newQty >= (product.minOrderQuantity || 1) && newQty <= product.maxOrderQuantity) {
+    const effectiveLimit = product.isMaxOrderRestricted ? product.maxOrderQuantity : product.stockQuantity;
+
+    if (newQty >= (product.minOrderQuantity || 1) && newQty <= effectiveLimit) {
       setQuantity(newQty);
     }
   };
@@ -179,11 +183,10 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
                   <button
                     key={idx}
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                      idx === selectedImageIndex
-                        ? 'border-emerald-500 ring-2 ring-emerald-200'
-                        : 'border-slate-200 hover:border-slate-300'
-                    }`}
+                    className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${idx === selectedImageIndex
+                      ? 'border-emerald-500 ring-2 ring-emerald-200'
+                      : 'border-slate-200 hover:border-slate-300'
+                      }`}
                   >
                     {img ? (
                       <Image
@@ -237,11 +240,11 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
             <div className="space-y-2">
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-bold text-emerald-600">
-                  {formatCurrency(currentPrice)}
+                  {formatPrice(currentPrice)}
                 </span>
                 {discount > 0 && (
                   <span className="text-xl text-slate-400 line-through">
-                    {formatCurrency(product.mrp)}
+                    {formatPrice(product.mrp)}
                   </span>
                 )}
               </div>
@@ -252,7 +255,7 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
                   <div className="space-y-1">
                     {product.bulkPrices.map((bp, idx) => (
                       <div key={idx} className="text-sm text-blue-800">
-                        {bp.minQuantity}+ units: {formatCurrency(bp.price)} each
+                        {bp.minQuantity}+ units: {formatPrice(bp.price)} each
                       </div>
                     ))}
                   </div>
@@ -340,7 +343,7 @@ export function QuickViewDialog({ product, open, onOpenChange }: QuickViewDialog
                     <div className="text-right">
                       <p className="text-sm text-slate-600">Total</p>
                       <p className="text-xl font-bold text-slate-900">
-                        {formatCurrency(totalPrice)}
+                        {formatPrice(totalPrice)}
                       </p>
                     </div>
                   </div>

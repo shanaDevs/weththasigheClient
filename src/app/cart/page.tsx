@@ -15,7 +15,9 @@ import {
   ShoppingBag,
   Pill,
   X,
-  Truck
+  Truck,
+  Check,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,11 +26,11 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCartStore, useAuthStore } from '@/store';
-import { formatCurrency, getImageUrl } from '@/lib/utils';
+import { getImageUrl } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
-
-import { settingsService } from '@/lib/api/misc';
-import type { PublicSettings } from '@/types';
+import { OrderRequestDialog } from '@/components/products/order-request-dialog';
+import type { Product } from '@/types';
 
 export default function CartPage() {
   const router = useRouter();
@@ -46,23 +48,14 @@ export default function CartPage() {
 
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
-  const [publicSettings, setPublicSettings] = useState<PublicSettings | null>(null);
+  const [selectedProductForRequest, setSelectedProductForRequest] = useState<Product | null>(null);
+  const { settings, formatPrice, isLoading: isLoadingSettings } = useSettings();
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchCart();
     }
-    loadPublicSettings();
   }, [isAuthenticated, fetchCart]);
-
-  const loadPublicSettings = async () => {
-    try {
-      const settings = await settingsService.getPublicSettings();
-      setPublicSettings(settings);
-    } catch (error) {
-      console.error('Failed to load public settings:', error);
-    }
-  };
 
   const handleUpdateQuantity = async (itemId: number, quantity: number) => {
     try {
@@ -157,8 +150,10 @@ export default function CartPage() {
   }
 
   const isEmpty = !cart || cart.items.length === 0;
-  const freeShippingThreshold = publicSettings?.free_shipping_threshold || 5000;
+  const freeShippingThreshold = settings?.free_shipping_threshold || 5000;
+  const minOrderValue = settings?.min_order_value || 0;
   const amountForFreeShipping = freeShippingThreshold - parseFloat(cart?.subtotal || '0');
+  const belowMinOrder = !!(cart && parseFloat(cart.subtotal) < minOrderValue);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -211,13 +206,13 @@ export default function CartPage() {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {/* Free Shipping Progress */}
-              {amountForFreeShipping > 0 && (
+              {amountForFreeShipping > 0 ? (
                 <Card className="border-emerald-200 bg-emerald-50/50">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-2">
                       <Truck className="w-5 h-5 text-emerald-600" />
                       <p className="text-sm text-emerald-700">
-                        Add <span className="font-bold">{formatCurrency(amountForFreeShipping)}</span> more for FREE shipping!
+                        Add <span className="font-bold">{formatPrice(amountForFreeShipping)}</span> more for FREE shipping!
                       </p>
                     </div>
                     <div className="w-full bg-emerald-200 rounded-full h-2">
@@ -227,6 +222,34 @@ export default function CartPage() {
                           width: `${Math.min((parseFloat(cart.subtotal) / freeShippingThreshold) * 100, 100)}%`
                         }}
                       />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-emerald-200 bg-emerald-50/50">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <p className="text-sm text-emerald-700 font-medium">
+                      You&apos;ve unlocked <span className="font-bold">FREE SHIPPING</span> for this order!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Minimum Order Warning */}
+              {belowMinOrder && (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                    <div>
+                      <p className="text-sm text-amber-800 font-medium">
+                        Minimum order value is <span className="font-bold">{formatPrice(minOrderValue)}</span>
+                      </p>
+                      <p className="text-xs text-amber-700">
+                        Please add <span className="font-bold">{formatPrice(minOrderValue - parseFloat(cart.subtotal))}</span> more to proceed.
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -303,8 +326,17 @@ export default function CartPage() {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8 hover:bg-slate-200"
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                  disabled={isLoading || item.quantity >= item.product.stockQuantity}
+                                  onClick={() => {
+                                    const limit = item.product.isMaxOrderRestricted ? item.product.maxOrderQuantity : item.product.stockQuantity;
+                                    if (item.quantity < limit) {
+                                      handleUpdateQuantity(item.id, item.quantity + 1);
+                                    } else if (item.product.isMaxOrderRestricted) {
+                                      toast.info(`Max limit ${item.product.maxOrderQuantity} reached`, {
+                                        description: "Request a higher quantity from admin."
+                                      });
+                                    }
+                                  }}
+                                  disabled={isLoading || item.quantity >= (item.product.isMaxOrderRestricted ? item.product.maxOrderQuantity : item.product.stockQuantity)}
                                 >
                                   <Plus className="w-4 h-4" />
                                 </Button>
@@ -313,15 +345,31 @@ export default function CartPage() {
                               {/* Price */}
                               <div className="text-right">
                                 <div className="text-lg font-bold text-slate-900">
-                                  {formatCurrency(item.subtotal)}
+                                  {formatPrice(item.subtotal)}
                                 </div>
                                 <div className="text-sm text-slate-500">
-                                  {formatCurrency(item.unitPrice)} × {item.quantity}
+                                  {formatPrice(item.unitPrice)} × {item.quantity}
                                 </div>
                               </div>
                             </div>
                           </div>
                         </div>
+
+                        {item.product.isMaxOrderRestricted && item.quantity >= item.product.maxOrderQuantity && (
+                          <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-[11px] text-emerald-800 font-bold uppercase tracking-wider">
+                              <AlertCircle className="w-4 h-4 text-emerald-600" />
+                              Maximum Limit Reached
+                            </div>
+                            <Button
+                              variant="link"
+                              className="text-[11px] text-emerald-600 font-extrabold underline underline-offset-4 hover:text-emerald-700 decoration-emerald-200 h-auto p-0"
+                              onClick={() => setSelectedProductForRequest(item.product as any)}
+                            >
+                              Request More?
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -376,23 +424,23 @@ export default function CartPage() {
                   <div className="space-y-3">
                     <div className="flex justify-between text-slate-600">
                       <span>Subtotal</span>
-                      <span>{formatCurrency(cart.subtotal)}</span>
+                      <span>{formatPrice(cart.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-slate-600">
                       <span>Tax</span>
-                      <span>{formatCurrency(cart.taxAmount)}</span>
+                      <span>{formatPrice(cart.taxAmount)}</span>
                     </div>
                     {parseFloat(cart.discountAmount) > 0 && (
                       <div className="flex justify-between text-emerald-600">
                         <span>Discount</span>
-                        <span>-{formatCurrency(cart.discountAmount)}</span>
+                        <span>-{formatPrice(cart.discountAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-slate-600">
                       <span>Shipping</span>
                       <span className={cart.shippingAmount && Number(cart.shippingAmount) === 0 ? "text-emerald-600" : ""}>
                         {cart.shippingAmount
-                          ? (Number(cart.shippingAmount) === 0 ? 'FREE' : formatCurrency(cart.shippingAmount))
+                          ? (Number(cart.shippingAmount) === 0 ? 'FREE' : formatPrice(cart.shippingAmount))
                           : 'Calculated at checkout'}
                       </span>
                     </div>
@@ -403,7 +451,7 @@ export default function CartPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold text-slate-900">Total</span>
                     <span className="text-2xl font-bold text-emerald-600">
-                      {formatCurrency(cart.total)}
+                      {formatPrice(cart.total)}
                     </span>
                   </div>
 
@@ -411,6 +459,7 @@ export default function CartPage() {
                     size="lg"
                     className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-lg font-semibold shadow-lg shadow-emerald-500/25"
                     onClick={() => router.push('/checkout')}
+                    disabled={belowMinOrder}
                   >
                     Proceed to Checkout
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -425,8 +474,17 @@ export default function CartPage() {
               </Card>
             </div>
           </div>
-        )}
+        )
+        }
       </div>
+
+      {selectedProductForRequest && (
+        <OrderRequestDialog
+          product={selectedProductForRequest}
+          open={!!selectedProductForRequest}
+          onOpenChange={(open) => !open && setSelectedProductForRequest(null)}
+        />
+      )}
     </div>
   );
 }

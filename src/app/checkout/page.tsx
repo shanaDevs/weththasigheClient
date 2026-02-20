@@ -28,7 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useCartStore, useAuthStore } from '@/store';
 import { doctorService, orderService } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import type { Address, CreateOrderInput } from '@/types';
 
@@ -47,6 +47,7 @@ function CheckoutContent() {
 
   const { isAuthenticated } = useAuthStore();
   const { cart, fetchCart, setAddresses, clearCart } = useCartStore();
+  const { settings, formatPrice } = useSettings();
 
   const [addresses, setAddressesState] = useState<Address[]>([]);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
@@ -86,6 +87,15 @@ function CheckoutContent() {
           fetchCart().catch(() => { });
         } else {
           await fetchCart();
+
+          // Check minimum order value from the store
+          const currentCart = useCartStore.getState().cart;
+          const minOrderValue = settings?.min_order_value || 0;
+          if (currentCart && parseFloat(currentCart.subtotal) < minOrderValue) {
+            toast.error(`Order value too low. Minimum order is ${formatPrice(minOrderValue)}`);
+            router.push('/cart');
+            return;
+          }
         }
 
         const addressList = await doctorService.getAddresses();
@@ -117,7 +127,7 @@ function CheckoutContent() {
             toast.info('Restarting your payment...');
 
             const payhere = (window as any).payhere;
-            
+
             payhere.onCompleted = function onCompleted() {
               toast.success('Payment successful!');
               router.push(`/checkout/success?order_id=${retryOrderId}`);
@@ -181,7 +191,7 @@ function CheckoutContent() {
 
         // PayHere Payment
         const payhere = (window as any).payhere;
-        
+
         payhere.onCompleted = function onCompleted() {
           toast.success('Payment successful and order placed!');
           clearCart(); // Clear cart after successful payment
@@ -601,9 +611,9 @@ function CheckoutContent() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-slate-900 truncate">{item.productName}</p>
-                            <p className="text-xs text-slate-500">{formatCurrency(item.unitPrice)} each</p>
+                            <p className="text-xs text-slate-500">{formatPrice(item.unitPrice)} each</p>
                           </div>
-                          <p className="text-sm font-medium">{formatCurrency(item.subtotal)}</p>
+                          <p className="text-sm font-medium">{formatPrice(item.subtotal)}</p>
                         </div>
                       ))}
                       {cart && cart.items.length > 3 && (
@@ -619,22 +629,22 @@ function CheckoutContent() {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Subtotal ({cart?.itemCount} items)</span>
-                        <span>{formatCurrency(cart?.subtotal || 0)}</span>
+                        <span>{formatPrice(cart?.subtotal || 0)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Tax</span>
-                        <span>{formatCurrency(cart?.taxAmount || 0)}</span>
+                        <span>{formatPrice(cart?.taxAmount || 0)}</span>
                       </div>
                       {cart && parseFloat(cart.discountAmount) > 0 && (
                         <div className="flex justify-between text-sm text-emerald-600">
                           <span>Discount</span>
-                          <span>-{formatCurrency(cart.discountAmount)}</span>
+                          <span>-{formatPrice(cart.discountAmount)}</span>
                         </div>
                       )}
                       <div className="flex justify-between text-sm">
                         <span className="text-slate-600">Shipping</span>
                         <span className={cart && Number(cart.shippingAmount) === 0 ? "text-emerald-600 font-medium" : "text-slate-900 font-medium"}>
-                          {cart && Number(cart.shippingAmount) === 0 ? 'FREE' : formatCurrency(cart?.shippingAmount || 0)}
+                          {cart && Number(cart.shippingAmount) === 0 ? 'FREE' : formatPrice(cart?.shippingAmount || 0)}
                         </span>
                       </div>
                     </div>
@@ -644,7 +654,7 @@ function CheckoutContent() {
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-semibold">Total</span>
                       <span className="text-2xl font-bold text-emerald-600">
-                        {formatCurrency(cart?.total || 0)}
+                        {formatPrice(cart?.total || 0)}
                       </span>
                     </div>
                   </CardContent>

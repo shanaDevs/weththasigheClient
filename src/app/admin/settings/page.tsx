@@ -46,6 +46,7 @@ import { authService } from '@/lib/api/auth';
 import { useAuthStore } from '@/store';
 import { cn } from '@/lib/utils';
 import type { SystemSetting } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function AdminSettingsPage() {
+  const { settings: currentSettings } = useSettings();
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [allSettings, setAllSettings] = useState<SystemSetting[]>([]);
@@ -276,7 +278,9 @@ export default function AdminSettingsPage() {
               {s.key.includes('email') && <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />}
               {s.key.includes('phone') && <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />}
               {s.key.includes('amount') || s.key.includes('threshold') || s.key.includes('charge') || s.key.includes('rate') || s.key.includes('limit') ? (
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">Rs.</div>
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                  {currentSettings?.currency_symbol || 'Rs.'}
+                </div>
               ) : null}
               <Input
                 type={s.dataType === 'number' ? 'number' : (inputType === 'password' ? 'password' : 'text')}

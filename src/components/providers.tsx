@@ -5,6 +5,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { useState } from 'react';
 
+import { SettingsProvider } from '@/hooks/use-settings';
+
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -20,10 +22,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        {children}
-        <Toaster position="top-right" richColors />
-      </TooltipProvider>
+      <SettingsProvider>
+        <TooltipProvider>
+          {children}
+          <Toaster position="top-right" richColors />
+        </TooltipProvider>
+      </SettingsProvider>
     </QueryClientProvider>
   );
 }

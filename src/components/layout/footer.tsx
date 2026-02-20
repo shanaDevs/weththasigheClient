@@ -13,6 +13,7 @@ import {
   Linkedin
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useSettings } from '@/hooks/use-settings';
 
 const footerLinks = {
   company: [
@@ -24,6 +25,7 @@ const footerLinks = {
   products: [
     { label: 'All Products', href: '/products' },
     { label: 'Categories', href: '/categories' },
+    { label: 'Brands', href: '/brands' },
     { label: 'Offers', href: '/promotions' },
     { label: 'New Arrivals', href: '/products?sort=newest' },
   ],
@@ -50,6 +52,8 @@ const socialLinks = [
 ];
 
 export function Footer() {
+  const { settings } = useSettings();
+
   return (
     <footer className="bg-slate-900 text-slate-300">
       {/* Main Footer */}
@@ -62,27 +66,33 @@ export function Footer() {
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-xl font-bold text-white">MediPharm</span>
-                <span className="text-xs text-slate-400 block -mt-1">B2B Healthcare</span>
+                <span className="text-xl font-bold text-white">{settings?.site_name || 'MediPharm'}</span>
+                <span className="text-xs text-slate-400 block -mt-1">{settings?.site_tagline || 'B2B Healthcare'}</span>
               </div>
             </Link>
             <p className="text-slate-400 text-sm leading-relaxed mb-6 max-w-sm">
-              Your trusted B2B partner for quality medicines and healthcare products in Sri Lanka.
+              {settings?.company_name || 'MediPharm'} is your trusted B2B partner for quality medicines and healthcare products in Sri Lanka.
               Serving doctors, clinics, and healthcare facilities with genuine products at competitive prices.
             </p>
             <div className="space-y-3">
-              <a href="tel:+94112345678" className="flex items-center space-x-3 text-sm hover:text-emerald-400 transition-colors">
-                <Phone className="w-4 h-4" />
-                <span>+94 11 234 5678</span>
-              </a>
-              <a href="mailto:support@medipharm.lk" className="flex items-center space-x-3 text-sm hover:text-emerald-400 transition-colors">
-                <Mail className="w-4 h-4" />
-                <span>support@medipharm.lk</span>
-              </a>
-              <div className="flex items-start space-x-3 text-sm">
-                <MapPin className="w-4 h-4 mt-0.5" />
-                <span>123 Galle Road, Colombo 03, Sri Lanka</span>
-              </div>
+              {settings?.company_phone && (
+                <a href={`tel:${settings.company_phone}`} className="flex items-center space-x-3 text-sm hover:text-emerald-400 transition-colors">
+                  <Phone className="w-4 h-4" />
+                  <span>{settings.company_phone}</span>
+                </a>
+              )}
+              {settings?.company_email && (
+                <a href={`mailto:${settings.company_email}`} className="flex items-center space-x-3 text-sm hover:text-emerald-400 transition-colors">
+                  <Mail className="w-4 h-4" />
+                  <span>{settings.company_email}</span>
+                </a>
+              )}
+              {settings?.company_address && (
+                <div className="flex items-start space-x-3 text-sm">
+                  <MapPin className="w-4 h-4 mt-0.5" />
+                  <span>{settings.company_address}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -159,7 +169,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500 text-center md:text-left">
-            © {new Date().getFullYear()} MediPharm B2B. All rights reserved.
+            © {new Date().getFullYear()} {settings?.site_name || 'MediPharm B2B'}. All rights reserved.
           </p>
 
           <div className="flex items-center space-x-4">

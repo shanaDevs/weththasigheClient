@@ -62,11 +62,13 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { adminApi, type UserFilters } from '@/lib/api/admin';
 import type { Doctor, User, AdminCreateUserInput } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 
 
 
 
 export default function AdminUsersPage() {
+  const { settings, formatPrice } = useSettings();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
@@ -494,16 +496,16 @@ export default function AdminUsersPage() {
                       <h4 className="font-medium mb-2">Credit Information</h4>
                       <div className="grid grid-cols-3 gap-4 text-center p-3 bg-slate-50 rounded-lg">
                         <div>
-                          <p className="text-lg font-bold text-slate-900">Rs.{parseFloat(selectedDoctor.creditLimit).toLocaleString()}</p>
+                          <p className="text-lg font-bold text-slate-900">{formatPrice(selectedDoctor.creditLimit)}</p>
                           <p className="text-xs text-slate-500">Limit</p>
                         </div>
                         <div>
-                          <p className="text-lg font-bold text-red-600">Rs.{parseFloat(selectedDoctor.creditUsed).toLocaleString()}</p>
+                          <p className="text-lg font-bold text-red-600">{formatPrice(selectedDoctor.creditUsed)}</p>
                           <p className="text-xs text-slate-500">Used</p>
                         </div>
                         <div>
                           <p className="text-lg font-bold text-emerald-600">
-                            Rs.{(parseFloat(selectedDoctor.creditLimit) - parseFloat(selectedDoctor.creditUsed)).toLocaleString()}
+                            {formatPrice(parseFloat(selectedDoctor.creditLimit) - parseFloat(selectedDoctor.creditUsed))}
                           </p>
                           <p className="text-xs text-slate-500">Avail.</p>
                         </div>
@@ -545,7 +547,7 @@ export default function AdminUsersPage() {
             <div className="space-y-2">
               <Label>Current Credit Used</Label>
               <p className="text-lg font-medium text-red-600">
-                Rs.{selectedDoctor ? parseFloat(selectedDoctor.creditUsed).toLocaleString() : 0}
+                {formatPrice(selectedDoctor ? selectedDoctor.creditUsed : 0)}
               </p>
             </div>
             <div className="space-y-2">

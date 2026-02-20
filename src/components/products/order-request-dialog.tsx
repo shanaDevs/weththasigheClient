@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { productService } from '@/lib/api/products';
 import type { Product } from '@/types';
-
+import { Info, Send } from 'lucide-react';
 
 interface OrderRequestDialogProps {
     product: Product;
@@ -30,23 +30,20 @@ export function OrderRequestDialog({ product, open, onOpenChange }: OrderRequest
     const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async () => {
-        if (!quantity || parseInt(quantity) <= product.maxOrderQuantity) {
-            toast.error(`Quantity must be greater than ${product.maxOrderQuantity}`);
+        if (!quantity || parseInt(quantity) <= (product.maxOrderQuantity || 0)) {
+            toast.error(`Quantity must be greater than ${product.maxOrderQuantity || 0}`);
             return;
         }
 
         setSubmitting(true);
         try {
-            // Assuming we have a public or user-facing route for this
-            // For now using a placeholder route logic in adminApi if needed, 
-            // but ideally it should be in products.ts or orders.ts
             await productService.submitOrderMoreRequest({
                 productId: product.id,
                 requestedQuantity: parseInt(quantity),
                 note
             });
 
-            toast.success('Request submitted successfully. Admin will review it.');
+            toast.success('Request submitted successfully. Our team will review it.');
             onOpenChange(false);
             setQuantity('');
             setNote('');
@@ -59,44 +56,70 @@ export function OrderRequestDialog({ product, open, onOpenChange }: OrderRequest
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle>Order More - {product.name}</DialogTitle>
-                    <DialogDescription>
-                        Request a quantity exceeding the maximum limit of {product.maxOrderQuantity}.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="requested-qty">Requested Quantity</Label>
-                        <Input
-                            id="requested-qty"
-                            type="number"
-                            placeholder={`Enter quantity ( > ${product.maxOrderQuantity})`}
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value)}
-                        />
+            <DialogContent className="sm:max-w-md rounded-[2rem] border-0 shadow-2xl p-0 overflow-hidden">
+                <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 text-white relative">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                        <Send className="w-24 h-24 rotate-12" />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="request-note">Note / Purpose (Optional)</Label>
-                        <Textarea
-                            id="request-note"
-                            placeholder="Tell us why you need more..."
-                            value={note}
-                            onChange={(e) => setNote(e.target.value)}
-                        />
+                    <div className="relative z-10">
+                        <h2 className="text-2xl font-black uppercase tracking-tight mb-1">Bulk Order Request</h2>
+                        <p className="text-emerald-50/80 font-medium text-sm">
+                            {product.name}
+                        </p>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+
+                <div className="p-8 space-y-6">
+                    <div className="flex items-start gap-4 p-4 bg-amber-50 rounded-2xl border border-amber-100/50">
+                        <div className="w-10 h-10 rounded-xl bg-amber-100/80 flex items-center justify-center flex-shrink-0">
+                            <Info className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <p className="text-[11px] text-amber-900 leading-relaxed font-bold uppercase tracking-wide">
+                            Your requesting more than our standard limit of <span className="text-amber-600 underline decoration-2">{product.maxOrderQuantity} units</span>. Our wholesale team will process your request within 24 hours.
+                        </p>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="requested-qty" className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Requested Quantity</Label>
+                            <Input
+                                id="requested-qty"
+                                type="number"
+                                placeholder={`Enter amount > ${product.maxOrderQuantity}`}
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                className="h-14 bg-slate-50 border-slate-100 rounded-2xl focus:ring-emerald-500/20 focus:border-emerald-500 font-bold text-lg px-6"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="request-note" className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">Note / Purpose (Optional)</Label>
+                            <Textarea
+                                id="request-note"
+                                placeholder="Why do you need more? (e.g. Pharmacy supply, event, etc.)"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                className="min-h-[120px] bg-slate-50 border-slate-100 rounded-2xl focus:ring-emerald-500/20 focus:border-emerald-500 font-medium p-6 resize-none"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-8 pt-0 flex gap-3">
                     <Button
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        variant="ghost"
+                        onClick={() => onOpenChange(false)}
+                        className="flex-1 h-14 rounded-2xl font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        className="flex-[2] h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20"
                         onClick={handleSubmit}
                         disabled={submitting}
                     >
-                        {submitting ? 'Submitting...' : 'Submit Request'}
+                        {submitting ? 'Sending Request...' : 'Submit Bulk Request'}
                     </Button>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

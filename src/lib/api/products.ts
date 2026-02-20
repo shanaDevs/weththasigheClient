@@ -44,4 +44,9 @@ export const productService = {
   async submitOrderMoreRequest(data: { productId: number; requestedQuantity: number; note?: string }): Promise<void> {
     await api.post('/products/order-more', data);
   },
+
+  async getMyOrderRequests(params?: { status?: string; page?: number; limit?: number }): Promise<any> {
+    const response = await api.get('/products/my-requests', { params });
+    return response.data.data;
+  },
 };

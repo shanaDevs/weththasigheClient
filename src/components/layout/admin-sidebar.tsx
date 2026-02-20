@@ -8,7 +8,7 @@ import {
     LayoutDashboard, Package, ShoppingCart, Inbox, Users, Shield,
     Building2, Tags, ClipboardList, Settings, Store, LogOut,
     ChevronLeft, ChevronRight, Menu, X, Bell, User, FolderTree, Ticket, Stethoscope,
-    Wallet
+    Wallet, Truck, FileText, History
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -55,6 +55,14 @@ const NAV_GROUPS = [
         items: [
             { href: '/admin/users', label: 'Users', icon: Users },
             { href: '/admin/roles', label: 'Roles & Permissions', icon: Shield },
+        ],
+    },
+    {
+        label: 'Inventory',
+        items: [
+            { href: '/admin/suppliers', label: 'Suppliers', icon: Truck },
+            { href: '/admin/purchase-orders', label: 'Purchase Orders', icon: FileText },
+            { href: '/admin/inventory/ledger', label: 'Inventory Ledger', icon: History },
         ],
     },
     {

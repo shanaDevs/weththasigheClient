@@ -27,6 +27,7 @@ import { useAuthStore } from '@/store';
 import { adminApi, type OrderStats } from '@/lib/api/admin';
 import type { Order, Product } from '@/types';
 import { toast } from 'sonner';
+import { useSettings } from '@/hooks/use-settings';
 
 const ORDER_STATUS_CONFIG: Record<string, { color: string; icon: React.ElementType }> = {
   pending: { color: 'bg-yellow-100 text-yellow-700', icon: Clock },
@@ -38,6 +39,7 @@ const ORDER_STATUS_CONFIG: Record<string, { color: string; icon: React.ElementTy
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
+  const { settings, formatPrice } = useSettings();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
@@ -75,7 +77,7 @@ export default function AdminDashboard() {
   const statCards = [
     {
       title: 'Total Revenue',
-      value: stats?.totalRevenue ? `Rs.${parseFloat(stats.totalRevenue).toLocaleString()}` : 'Rs.0',
+      value: stats?.totalRevenue ? formatPrice(stats.totalRevenue) : formatPrice(0),
       change: '+20.1%',
       trend: 'up',
       icon: DollarSign,
@@ -251,7 +253,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-slate-900">Rs.{parseFloat(order.total).toLocaleString()}</p>
+                        <p className="font-medium text-slate-900">{formatPrice(order.total)}</p>
                         <div className="flex items-center gap-2">
                           <Badge className={statusConfig.color}>{order.status}</Badge>
                           <span className="text-xs text-slate-400">

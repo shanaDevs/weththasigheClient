@@ -16,7 +16,8 @@ import {
   Stethoscope,
   ChevronDown,
   LayoutDashboard,
-  Wallet
+  Wallet,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,18 +32,20 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore, useCartStore } from '@/store';
 import { cn, debounce } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 
 const navLinks = [
   { href: '/products', label: 'Products' },
   { href: '/categories', label: 'Categories' },
+  { href: '/brands', label: 'Brands' },
   { href: '/promotions', label: 'Offers' },
-  { href: '/register-doctor', label: 'For Doctors' },
 ];
 
 export function Header() {
   const router = useRouter();
   const { user, isAuthenticated, logout, _hasHydrated } = useAuthStore();
   const { cart, fetchCart } = useCartStore();
+  const { settings } = useSettings();
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -105,11 +108,13 @@ export function Header() {
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
                 <Stethoscope className="w-5 h-5 text-white" />
               </div>
-              <div className="hidden sm:block">
-                <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  MediPharm
+              <div className="hidden sm:block text-left">
+                <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent block">
+                  {settings?.site_name || 'MediPharm'}
                 </span>
-                <span className="text-[10px] text-slate-500 block -mt-1">B2B Healthcare</span>
+                <span className="text-[10px] text-slate-500 block -mt-1">
+                  {settings?.site_tagline || 'B2B Healthcare'}
+                </span>
               </div>
             </motion.div>
           </Link>
@@ -228,6 +233,12 @@ export function Header() {
                     <Link href="/profile" className="flex items-center cursor-pointer">
                       <User className="mr-2 w-4 h-4" />
                       Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/order-requests" className="flex items-center cursor-pointer">
+                      <FileText className="mr-2 w-4 h-4 text-emerald-600" />
+                      My Order Requests
                     </Link>
                   </DropdownMenuItem>
                   {user?.role?.name?.toLowerCase() === 'doctor' && (

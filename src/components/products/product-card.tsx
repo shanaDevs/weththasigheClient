@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCartStore, useAuthStore } from '@/store';
-import { formatCurrency, calculateDiscount, getImageUrl } from '@/lib/utils';
+import { calculateDiscount, getImageUrl } from '@/lib/utils';
 import type { Product } from '@/types';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { OrderRequestDialog } from './order-request-dialog';
 import { ProductBadges } from './product-badges';
 import { getProductPrice } from '@/lib/product-utils';
+import { useSettings } from '@/hooks/use-settings';
 
 
 interface ProductCardProps {
@@ -25,12 +26,11 @@ interface ProductCardProps {
 
 export function ProductCard({ product, index = 0, onQuickView }: ProductCardProps) {
   const { user, isAuthenticated } = useAuthStore();
-  const { addToCart, getItemByProductId, updateQuantity, isLoading } = useCartStore();
+  const { addToCart, updateQuantity, isLoading } = useCartStore();
+  const cartItem = useCartStore(state => state.cart?.items.find(item => item.productId === product.id));
+  const { settings, formatPrice } = useSettings();
   const [isAdding, setIsAdding] = useState(false);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
-
-
-  const cartItem = getItemByProductId(product.id);
   const displayPrice = getProductPrice(product, user);
   const discount = calculateDiscount(product.mrp, displayPrice);
   const isOutOfStock = product.stockQuantity <= 0;
@@ -77,8 +77,14 @@ export function ProductCard({ product, index = 0, onQuickView }: ProductCardProp
       return;
     }
 
-    if (newQuantity > product.maxOrderQuantity) {
-      toast.error(`Maximum order quantity is ${product.maxOrderQuantity}`);
+    const effectiveLimit = product.isMaxOrderRestricted ? product.maxOrderQuantity : product.stockQuantity;
+
+    if (newQuantity > effectiveLimit) {
+      if (product.isMaxOrderRestricted) {
+        toast.error(`Maximum order quantity is ${product.maxOrderQuantity}`);
+      } else {
+        toast.error(`Only ${product.stockQuantity} units available in stock`);
+      }
       return;
     }
 
@@ -172,11 +178,11 @@ export function ProductCard({ product, index = 0, onQuickView }: ProductCardProp
           {/* Price */}
           <div className="flex items-baseline gap-2 mb-3">
             <span className="text-lg font-bold text-emerald-600">
-              {formatCurrency(displayPrice)}
+              {formatPrice(displayPrice)}
             </span>
             {parseFloat(product.mrp) > parseFloat(displayPrice) && (
               <span className="text-sm text-slate-400 line-through">
-                {formatCurrency(product.mrp)}
+                {formatPrice(product.mrp)}
               </span>
             )}
           </div>
@@ -215,13 +221,13 @@ export function ProductCard({ product, index = 0, onQuickView }: ProductCardProp
                   size="icon"
                   className="h-8 w-8 hover:bg-emerald-100"
                   onClick={() => handleUpdateQuantity(cartItem.quantity + 1)}
-                  disabled={isLoading || cartItem.quantity >= product.maxOrderQuantity}
+                  disabled={isLoading || cartItem.quantity >= (product.isMaxOrderRestricted ? product.maxOrderQuantity : product.stockQuantity)}
                 >
                   <Plus className="w-4 h-4" />
                 </Button>
               </div>
               <span className="text-sm font-semibold text-emerald-600">
-                {formatCurrency(parseFloat(cartItem.subtotal))}
+                {formatPrice(parseFloat(cartItem.subtotal))}
               </span>
             </div>
           ) : (
@@ -248,13 +254,17 @@ export function ProductCard({ product, index = 0, onQuickView }: ProductCardProp
             </Button>
           )}
           {cartItem && cartItem.quantity >= product.maxOrderQuantity && product.isMaxOrderRestricted && (
-            <Button
-              variant="link"
-              className="w-full text-xs text-emerald-600 h-auto mt-2 p-0"
-              onClick={() => setShowRequestDialog(true)}
-            >
-              Need more? Request here
-            </Button>
+            <div className="mt-3 p-2 bg-emerald-50 rounded-xl border border-emerald-100/50 flex flex-col items-center gap-1">
+              <span className="text-[10px] text-emerald-800 font-bold uppercase tracking-widest">Maximum Limit Reached</span>
+              <Button
+                variant="link"
+                className="text-xs text-emerald-600 h-auto p-0 font-black hover:text-emerald-700 underline underline-offset-2 flex items-center gap-1"
+                onClick={() => setShowRequestDialog(true)}
+              >
+                <AlertCircle className="w-3 h-3" />
+                Request Higher Quantity
+              </Button>
+            </div>
           )}
         </CardContent>
 

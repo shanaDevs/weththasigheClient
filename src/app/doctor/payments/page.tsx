@@ -39,12 +39,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { doctorService } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import { useAuthStore } from '@/store';
 import Link from 'next/link';
 
 export default function DoctorPaymentsPage() {
     const { user } = useAuthStore();
+    const { settings, formatPrice } = useSettings();
     const [loading, setLoading] = useState(true);
     const [summary, setSummary] = useState<any>(null);
     const [payments, setPayments] = useState<any[]>([]);
@@ -143,13 +145,13 @@ export default function DoctorPaymentsPage() {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-16 -mt-16 blur-3xl" />
                     <CardHeader className="pb-2">
                         <CardDescription className="text-slate-400">Available Credit</CardDescription>
-                        <CardTitle className="text-4xl font-bold">{formatCurrency(availableCredit)}</CardTitle>
+                        <CardTitle className="text-4xl font-bold">{formatPrice(availableCredit)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="mt-4 space-y-2">
                             <div className="flex justify-between text-xs">
-                                <span className="text-slate-400">Used: {formatCurrency(usedCredit)}</span>
-                                <span className="text-slate-400">Limit: {formatCurrency(creditLimit)}</span>
+                                <span className="text-slate-400">Used: {formatPrice(usedCredit)}</span>
+                                <span className="text-slate-400">Limit: {formatPrice(creditLimit)}</span>
                             </div>
                             <div className="w-full bg-slate-700 rounded-full h-1.5">
                                 <motion.div
@@ -167,7 +169,7 @@ export default function DoctorPaymentsPage() {
                     <CardContent className="p-6 flex items-center justify-between">
                         <div className="space-y-1">
                             <p className="text-sm text-slate-500">Total Outstanding</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{formatCurrency(usedCredit)}</h3>
+                            <h3 className="text-2xl font-bold text-slate-900">{formatPrice(usedCredit)}</h3>
                             {summary?.pendingOrders?.length > 0 && (
                                 <p className="text-xs text-amber-600 font-medium flex items-center gap-1 mt-2">
                                     <AlertCircle className="w-3 h-3" />
@@ -248,7 +250,7 @@ export default function DoctorPaymentsPage() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right font-bold text-slate-900">
-                                                    {formatCurrency(payment.amount)}
+                                                    {formatPrice(payment.amount)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge className={
@@ -293,7 +295,7 @@ export default function DoctorPaymentsPage() {
                                                 <p className="text-[10px] text-slate-400">{formatDate(bill.createdAt)}</p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-sm font-bold text-emerald-600">{formatCurrency(bill.total)}</p>
+                                                <p className="text-sm font-bold text-emerald-600">{formatPrice(bill.total)}</p>
                                                 <p className="text-[10px] text-red-500 font-medium italic">Due: {formatDate(bill.creditDueDate)}</p>
                                             </div>
                                         </div>
@@ -339,13 +341,13 @@ export default function DoctorPaymentsPage() {
                     <div className="py-4 space-y-4">
                         <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 flex items-center justify-between">
                             <span className="text-sm text-amber-800">Total Outstanding</span>
-                            <span className="font-bold text-amber-900">{formatCurrency(usedCredit)}</span>
+                            <span className="font-bold text-amber-900">{formatPrice(usedCredit)}</span>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="settle-amount">Payment Amount *</Label>
                             <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">Rs.</div>
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{settings?.currency_symbol || 'Rs.'}</div>
                                 <Input
                                     id="settle-amount"
                                     type="number"

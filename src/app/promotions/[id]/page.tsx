@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductGrid } from '@/components/products';
 import { promotionService } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import type { Promotion, Product, Pagination } from '@/types';
 
 const promotionColors: Record<string, string> = {
@@ -43,6 +43,7 @@ const promotionIcons: Record<string, React.ElementType> = {
 
 export default function PromotionDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const { settings, formatPrice } = useSettings();
     const [promotion, setPromotion] = useState<Promotion | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -173,7 +174,7 @@ export default function PromotionDetailPage({ params }: { params: Promise<{ id: 
                                     </h1>
                                     {promotion.discountValue && (
                                         <div className="text-5xl md:text-7xl font-black tracking-tighter drop-shadow-2xl">
-                                            {promotion.discountType === 'percentage' ? `${promotion.discountValue}% OFF` : formatCurrency(promotion.discountValue)}
+                                            {promotion.discountType === 'percentage' ? `${promotion.discountValue}% OFF` : formatPrice(promotion.discountValue)}
                                         </div>
                                     )}
                                 </div>

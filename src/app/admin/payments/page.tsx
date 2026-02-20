@@ -62,6 +62,7 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { adminApi } from '@/lib/api/admin';
 import type { Payment } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 import Link from 'next/link';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
@@ -134,11 +135,6 @@ function getMethodIcon(method: string) {
     return <Icon className="w-4 h-4" />;
 }
 
-function formatCurrency(amount: string | number): string {
-    const val = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return `Rs.${Math.abs(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 function getCustomerName(payment: Payment): string {
     const doctor = payment.order?.doctor;
     if (doctor?.user) {
@@ -158,6 +154,7 @@ function getCustomerType(payment: Payment): 'doctor' | 'customer' {
 // ─── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AdminPaymentsPage() {
+    const { settings, formatPrice } = useSettings();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [stats, setStats] = useState<PaymentStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -352,7 +349,7 @@ export default function AdminPaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-emerald-600 mb-1">Total Received</p>
-                                    <p className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.totalPaid)}</p>
+                                    <p className="text-2xl font-bold text-emerald-900">{formatPrice(stats.totalPaid)}</p>
                                 </div>
                                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
                                     <ArrowDownCircle className="w-6 h-6 text-emerald-600" />
@@ -366,7 +363,7 @@ export default function AdminPaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-red-600 mb-1">Total Refunds</p>
-                                    <p className="text-2xl font-bold text-red-900">{formatCurrency(stats.totalRefunds)}</p>
+                                    <p className="text-2xl font-bold text-red-900">{formatPrice(stats.totalRefunds)}</p>
                                 </div>
                                 <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center">
                                     <ArrowUpCircle className="w-6 h-6 text-red-600" />
@@ -380,7 +377,7 @@ export default function AdminPaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-blue-600 mb-1">Net Payments</p>
-                                    <p className="text-2xl font-bold text-blue-900">{formatCurrency(stats.netPayments)}</p>
+                                    <p className="text-2xl font-bold text-blue-900">{formatPrice(stats.netPayments)}</p>
                                 </div>
                                 <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
                                     <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -394,7 +391,7 @@ export default function AdminPaymentsPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-amber-600 mb-1">Total Outstanding</p>
-                                    <p className="text-2xl font-bold text-amber-900">{formatCurrency(stats.totalOutstanding)}</p>
+                                    <p className="text-2xl font-bold text-amber-900">{formatPrice(stats.totalOutstanding)}</p>
                                 </div>
                                 <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
                                     <Clock className="w-6 h-6 text-amber-600" />
@@ -442,7 +439,7 @@ export default function AdminPaymentsPage() {
                                     {getMethodIcon(item.method)}
                                     <span className="text-sm font-medium text-slate-700">{getMethodLabel(item.method)}</span>
                                     <span className="text-xs bg-white px-2 py-0.5 rounded-full text-slate-600 border">{item.count}×</span>
-                                    <span className="text-sm font-semibold text-slate-900">{formatCurrency(item.total)}</span>
+                                    <span className="text-sm font-semibold text-slate-900">{formatPrice(item.total)}</span>
                                 </div>
                             ))}
                         </div>
@@ -636,7 +633,7 @@ export default function AdminPaymentsPage() {
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         <span className={`font-semibold ${isRefund ? 'text-red-600' : 'text-slate-900'}`}>
-                                                            {isRefund ? '-' : ''}{formatCurrency(payment.amount)}
+                                                            {isRefund ? '-' : ''}{formatPrice(payment.amount)}
                                                         </span>
                                                     </TableCell>
                                                     <TableCell>
@@ -704,12 +701,12 @@ export default function AdminPaymentsPage() {
                                                                                             <div>
                                                                                                 <p className="text-sm font-medium text-slate-800">{item.productName}</p>
                                                                                                 <p className="text-xs text-slate-400">
-                                                                                                    {item.quantity} × {formatCurrency(item.unitPrice)}
+                                                                                                    {item.quantity} × {formatPrice(item.unitPrice)}
                                                                                                 </p>
                                                                                             </div>
                                                                                         </div>
                                                                                         <span className="text-sm font-semibold text-slate-700">
-                                                                                            {formatCurrency(item.total)}
+                                                                                            {formatPrice(item.total)}
                                                                                         </span>
                                                                                     </div>
                                                                                 ))}
@@ -726,19 +723,19 @@ export default function AdminPaymentsPage() {
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-slate-500">Order Total</span>
                                                                                 <span className="font-medium">
-                                                                                    {payment.order ? formatCurrency(payment.order.total) : '—'}
+                                                                                    {payment.order ? formatPrice(payment.order.total) : '—'}
                                                                                 </span>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-slate-500">Paid Amount</span>
                                                                                 <span className="font-medium text-emerald-600">
-                                                                                    {payment.order?.paidAmount ? formatCurrency(payment.order.paidAmount) : '—'}
+                                                                                    {payment.order?.paidAmount ? formatPrice(payment.order.paidAmount) : '—'}
                                                                                 </span>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-slate-500">Due Amount</span>
                                                                                 <span className={`font-medium ${parseFloat(payment.order?.dueAmount || '0') > 0 ? 'text-red-600' : 'text-slate-700'}`}>
-                                                                                    {payment.order?.dueAmount ? formatCurrency(payment.order.dueAmount) : '—'}
+                                                                                    {payment.order?.dueAmount ? formatPrice(payment.order.dueAmount) : '—'}
                                                                                 </span>
                                                                             </div>
                                                                             <Separator />
@@ -770,7 +767,7 @@ export default function AdminPaymentsPage() {
                                                                                     <Separator />
                                                                                     <div className="flex justify-between text-red-600">
                                                                                         <span>Refunded</span>
-                                                                                        <span className="font-medium">{formatCurrency(payment.refundedAmount)}</span>
+                                                                                        <span className="font-medium">{formatPrice(payment.refundedAmount)}</span>
                                                                                     </div>
                                                                                     {payment.refundReason && (
                                                                                         <p className="text-xs text-slate-500 italic">Reason: {payment.refundReason}</p>
@@ -843,7 +840,7 @@ export default function AdminPaymentsPage() {
                                 <div>
                                     <p className="text-sm text-slate-500">Amount</p>
                                     <p className={`text-2xl font-bold ${parseFloat(detailPayment.amount) < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                                        {parseFloat(detailPayment.amount) < 0 ? '-' : ''}{formatCurrency(detailPayment.amount)}
+                                        {parseFloat(detailPayment.amount) < 0 ? '-' : ''}{formatPrice(detailPayment.amount)}
                                     </p>
                                 </div>
                                 {getStatusBadge(detailPayment.status)}
@@ -913,7 +910,7 @@ export default function AdminPaymentsPage() {
                                     <div className="p-3 bg-red-50 rounded-lg border border-red-100">
                                         <p className="text-sm font-medium text-red-700 mb-1">Refund Information</p>
                                         <p className="text-sm text-red-600">
-                                            Amount: {formatCurrency(detailPayment.refundedAmount)}
+                                            Amount: {formatPrice(detailPayment.refundedAmount)}
                                         </p>
                                         {detailPayment.refundReason && (
                                             <p className="text-sm text-red-500 mt-1">Reason: {detailPayment.refundReason}</p>
@@ -939,7 +936,7 @@ export default function AdminPaymentsPage() {
                                                     <span className="text-slate-700">
                                                         {item.productName} × {item.quantity}
                                                     </span>
-                                                    <span className="font-medium">{formatCurrency(item.total)}</span>
+                                                    <span className="font-medium">{formatPrice(item.total)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -986,7 +983,7 @@ export default function AdminPaymentsPage() {
                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
                                         <p className="text-slate-500">Original Amount</p>
-                                        <p className="text-lg font-bold text-slate-900">{formatCurrency(refundPayment.amount)}</p>
+                                        <p className="text-lg font-bold text-slate-900">{formatPrice(refundPayment.amount)}</p>
                                     </div>
                                     <div>
                                         <p className="text-slate-500">Order</p>
@@ -1014,7 +1011,7 @@ export default function AdminPaymentsPage() {
                                     value={refundAmount}
                                     onChange={(e) => setRefundAmount(e.target.value)}
                                 />
-                                <p className="text-xs text-slate-500">Max: {formatCurrency(refundPayment.amount)}</p>
+                                <p className="text-xs text-slate-500">Max: {formatPrice(refundPayment.amount)}</p>
                             </div>
 
                             <div className="space-y-2">
@@ -1078,7 +1075,9 @@ export default function AdminPaymentsPage() {
                         <div className="space-y-2">
                             <Label htmlFor="settle-amount">Payment Amount *</Label>
                             <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">Rs.</div>
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    {settings?.currency_symbol || 'Rs.'}
+                                </div>
                                 <Input
                                     id="settle-amount"
                                     type="number"

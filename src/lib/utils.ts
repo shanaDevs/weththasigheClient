@@ -5,14 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number | string): string {
-  const symbol = process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || 'Rs.';
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return `${symbol}${num.toLocaleString('en-LK', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2
-  })}`;
-}
+
 
 export function formatDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;

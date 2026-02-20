@@ -229,6 +229,8 @@ export interface CartItem {
   product: {
     stockQuantity: number;
     allowBackorder: boolean;
+    maxOrderQuantity: number;
+    isMaxOrderRestricted: boolean;
   };
 }
 
@@ -569,11 +571,17 @@ export interface PublicSettings {
   site_name: string;
   site_tagline: string;
   company_name: string;
+  company_address: string;
   company_phone: string;
+  company_email: string;
   currency_symbol: string;
   min_order_value: number;
   free_shipping_threshold: number;
   default_shipping_charge: number;
+  delivery_ranges: any[];
+  default_tax_enabled: boolean;
+  default_tax_percentage: number;
+  tax_inclusive_pricing: boolean;
 }
 
 // API Response Types
@@ -611,6 +619,7 @@ export interface ProductQueryParams {
   maxPrice?: number;
   manufacturer?: string;
   agencyId?: number;
+  brandId?: number;
   inStock?: boolean;
   sortBy?: 'name' | 'sellingPrice' | 'createdAt';
   sortOrder?: 'ASC' | 'DESC';

@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
-  Package, 
-  Clock, 
-  CheckCircle2, 
-  Truck, 
+import {
+  Package,
+  Clock,
+  CheckCircle2,
+  Truck,
   XCircle,
   ChevronRight,
   Search,
@@ -29,7 +29,8 @@ import {
 } from '@/components/ui/select';
 import { useAuthStore } from '@/store';
 import { orderService } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import type { Order } from '@/types';
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -45,7 +46,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
 export default function OrdersPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
-  
+  const { settings, formatPrice } = useSettings();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -213,7 +215,7 @@ export default function OrdersPage() {
                           <div className="flex items-center gap-4">
                             <div className="text-right">
                               <p className="text-lg font-bold text-slate-900">
-                                {formatCurrency(order.total)}
+                                {formatPrice(order.total)}
                               </p>
                               <p className="text-sm text-slate-500 capitalize">
                                 {order.paymentStatus}

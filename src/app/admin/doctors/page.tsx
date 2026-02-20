@@ -26,8 +26,10 @@ import {
 import { toast } from 'sonner';
 import adminApi from '@/lib/api/admin';
 import type { Doctor } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 
 export default function AdminDoctorsPage() {
+    const { settings, formatPrice } = useSettings();
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -370,11 +372,11 @@ export default function AdminDoctorsPage() {
                                         <TableCell className="text-right">
                                             <div className="space-y-0.5">
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    Rs. {parseFloat(doc.creditLimit || '0').toLocaleString()}
+                                                    {formatPrice(doc.creditLimit)}
                                                 </p>
                                                 <div className="flex items-center justify-end gap-1 text-[10px] text-slate-500">
                                                     <Wallet className="w-3 h-3" />
-                                                    Used: Rs. {parseFloat(doc.creditUsed || '0').toLocaleString()}
+                                                    Used: {formatPrice(doc.creditUsed)}
                                                 </div>
                                             </div>
                                         </TableCell>
@@ -538,7 +540,7 @@ export default function AdminDoctorsPage() {
                                     value={creditLimit}
                                     onChange={e => setCreditLimit(e.target.value)}
                                     className="bg-white border-indigo-200 h-10"
-                                    placeholder="Amount in Rs."
+                                    placeholder={`Amount in ${settings?.currency_symbol || 'Rs.'}`}
                                 />
                             </div>
                         </div>
@@ -581,9 +583,11 @@ export default function AdminDoctorsPage() {
 
                     <div className="py-2 space-y-4">
                         <div className="space-y-1.5">
-                            <Label htmlFor="credit-limit">Credit Limit (Rs.)</Label>
+                            <Label htmlFor="credit-limit">Credit Limit ({settings?.currency_symbol || 'Rs.'})</Label>
                             <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rs.</div>
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
+                                    {settings?.currency_symbol || 'Rs.'}
+                                </div>
                                 <Input
                                     id="credit-limit"
                                     type="number"
@@ -597,8 +601,8 @@ export default function AdminDoctorsPage() {
                         <div className="rounded-lg bg-emerald-50 p-3 flex gap-2 border border-emerald-100">
                             <Wallet className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                             <div className="text-[11px] text-emerald-800">
-                                Current Credit Used: <strong>Rs. {parseFloat(selectedDoctor?.creditUsed || '0').toLocaleString()}</strong>
-                                <br />Available power: <strong>Rs. {(parseFloat(creditLimit || '0') - parseFloat(selectedDoctor?.creditUsed || '0')).toLocaleString()}</strong>
+                                Current Credit Used: <strong>{formatPrice(selectedDoctor?.creditUsed || 0)}</strong>
+                                <br />Available power: <strong>{formatPrice(parseFloat(creditLimit || '0') - parseFloat(selectedDoctor?.creditUsed || '0'))}</strong>
                             </div>
                         </div>
                     </div>
@@ -770,13 +774,15 @@ export default function AdminDoctorsPage() {
                     <div className="py-4 space-y-4">
                         <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
                             <span className="text-sm text-emerald-800">Available Credit Limit</span>
-                            <span className="font-bold text-emerald-900">Rs. {parseFloat(selectedDoctor?.creditLimit || '0').toLocaleString()}</span>
+                            <span className="font-bold text-emerald-900">{formatPrice(selectedDoctor?.creditLimit || 0)}</span>
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="settle-amount">Payment Amount *</Label>
                             <div className="relative">
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">Rs.</div>
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                    {settings?.currency_symbol || 'Rs.'}
+                                </div>
                                 <Input
                                     id="settle-amount"
                                     type="number"

@@ -35,6 +35,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { toast } from 'sonner';
 import { adminApi } from '@/lib/api/admin';
 import type { Discount } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ const APPLICABLE_TO = [
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function AdminDiscountsPage() {
+    const { settings, formatPrice } = useSettings();
     // List State
     const [discounts, setDiscounts] = useState<Discount[]>([]);
     const [loading, setLoading] = useState(true);
@@ -384,11 +386,11 @@ export default function AdminDiscountsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <span className="font-semibold text-slate-700">
-                                                {discount.type === 'percentage' ? `${discount.value}%` : `Rs. ${discount.value}`}
+                                                {discount.type === 'percentage' ? `${discount.value}%` : formatPrice(discount.value || 0)}
                                             </span>
                                             {discount.minOrderAmount && (
                                                 <div className="text-xs text-slate-500 mt-0.5">
-                                                    Min: Rs. {discount.minOrderAmount}
+                                                    Min: {formatPrice(discount.minOrderAmount)}
                                                 </div>
                                             )}
                                         </TableCell>
@@ -518,7 +520,7 @@ export default function AdminDiscountsPage() {
                                         className="pl-8"
                                     />
                                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                                        {formData.type === 'percentage' ? '%' : 'Rs'}
+                                        {formData.type === 'percentage' ? '%' : (settings?.currency_symbol || 'Rs.')}
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-500">

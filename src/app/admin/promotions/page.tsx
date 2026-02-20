@@ -61,6 +61,7 @@ import { toast } from 'sonner';
 import { adminApi, type PromotionFilters, type CreatePromotionData } from '@/lib/api/admin';
 import type { Promotion } from '@/types';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { useSettings } from '@/hooks/use-settings';
 
 const PROMOTION_TYPES = [
   { value: 'flash_sale', label: 'Flash Sale' },
@@ -81,6 +82,7 @@ const DISCOUNT_TYPES = [
 ];
 
 export default function AdminPromotionsPage() {
+  const { settings, formatPrice } = useSettings();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 20, totalPages: 0 });
@@ -344,7 +346,7 @@ export default function AdminPromotionsPage() {
                             <span className="font-medium">
                               {promotion.discountType === 'percentage'
                                 ? `${promotion.discountValue}%`
-                                : `Rs.${parseFloat(promotion.discountValue.toString()).toLocaleString()}`}
+                                : formatPrice(promotion.discountValue)}
                             </span>
                           </div>
                         ) : (

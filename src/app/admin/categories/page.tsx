@@ -33,6 +33,7 @@ import { Switch } from '@/components/ui/switch';
 import { adminApi } from '@/lib/api/admin';
 import { toast } from 'sonner';
 import type { Category, Product } from '@/types';
+import { useSettings } from '@/hooks/use-settings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ function ProductListDialog({
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ total: 0, totalPages: 1, limit: 10 });
+    const { formatPrice } = useSettings();
 
     const fetchProducts = useCallback(async (p = 1) => {
         if (!category) return;
@@ -178,7 +180,7 @@ function ProductListDialog({
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <span className="text-sm font-semibold text-slate-800">
-                                                Rs.{parseFloat(String(product.sellingPrice || 0)).toLocaleString()}
+                                                {formatPrice(product.sellingPrice)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-center">

@@ -36,7 +36,8 @@ import {
 } from '@/components/ui/dialog';
 import { useAuthStore } from '@/store';
 import { orderService } from '@/lib/api';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import { toast } from 'sonner';
 import type { Order } from '@/types';
 
@@ -62,6 +63,7 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { isAuthenticated } = useAuthStore();
+  const { settings, formatPrice } = useSettings();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -349,12 +351,12 @@ export default function OrderDetailPage() {
                           </Link>
                           <p className="text-sm text-slate-500">Qty: {item.quantity}</p>
                           <p className="text-sm text-slate-500">
-                            {formatCurrency(item.unitPrice)} each
+                            {formatPrice(item.unitPrice)} each
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-slate-900">
-                            {formatCurrency(item.subtotal)}
+                            {formatPrice(item.subtotal)}
                           </p>
                         </div>
                       </div>
@@ -445,16 +447,16 @@ export default function OrderDetailPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Subtotal</span>
-                      <span>{formatCurrency(order.subtotal)}</span>
+                      <span>{formatPrice(order.subtotal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Tax</span>
-                      <span>{formatCurrency(order.taxAmount)}</span>
+                      <span>{formatPrice(order.taxAmount)}</span>
                     </div>
                     {parseFloat(order.discountAmount) > 0 && (
                       <div className="flex justify-between text-sm text-emerald-600">
                         <span>Discount</span>
-                        <span>-{formatCurrency(order.discountAmount)}</span>
+                        <span>-{formatPrice(order.discountAmount)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
@@ -468,7 +470,7 @@ export default function OrderDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Total</span>
                     <span className="text-2xl font-bold text-emerald-600">
-                      {formatCurrency(order.total)}
+                      {formatPrice(order.total)}
                     </span>
                   </div>
 

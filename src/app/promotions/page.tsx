@@ -19,7 +19,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { promotionService } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import type { Promotion } from '@/types';
 
 const promotionColors: Record<string, string> = {
@@ -76,6 +76,7 @@ const staggerContainer = {
 };
 
 export default function PromotionsPage() {
+    const { settings, formatPrice } = useSettings();
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -210,7 +211,7 @@ export default function PromotionsPage() {
                                                         </Badge>
                                                         {promo.discountValue && (
                                                             <div className="text-4xl font-black drop-shadow-xl tracking-tight">
-                                                                {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : formatCurrency(promo.discountValue)}
+                                                                {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : formatPrice(promo.discountValue)}
                                                             </div>
                                                         )}
                                                     </div>

@@ -560,6 +560,41 @@ export const adminApi = {
     return response.data.data;
   },
 
+  async updatePurchaseOrderStatus(id: number, status: string, notes?: string): Promise<any> {
+    const response = await api.patch(`/purchase-orders/${id}/status`, { status, notes });
+    return response.data;
+  },
+
+  async sendPurchaseOrder(id: number): Promise<{ success: boolean; message: string; data?: any }> {
+    const response = await api.post(`/purchase-orders/${id}/send`);
+    return response.data;
+  },
+
+  async downloadPurchaseOrderPdf(id: number, poNumber: string): Promise<void> {
+    const response = await api.get(`/purchase-orders/${id}/pdf`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PO_${poNumber}.pdf`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  },
+
+  async receivePurchaseOrderItems(id: number, items: { productId: number; quantity: number; batchNumber?: string; expiryDate?: string }[]): Promise<any> {
+    const response = await api.post(`/purchase-orders/${id}/receive`, { items });
+    return response.data;
+  },
+
+  async getInventoryMovements(params?: any): Promise<any> {
+    const response = await api.get('/inventory/movements', { params });
+    return response.data;
+  },
+
+  async getInventoryStats(): Promise<any> {
+    const response = await api.get('/inventory/stats');
+    return response.data;
+  },
+
   // Payments
   async getPayments(filters: {
     page?: number;

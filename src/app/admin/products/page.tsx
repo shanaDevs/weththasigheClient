@@ -59,9 +59,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { adminApi, type ProductFilters } from '@/lib/api/admin';
 import type { Product, Category, Agency, ProductBatch, Supplier } from '@/types';
-import { cn, formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 
 export default function AdminProductsPage() {
+  const { settings, formatPrice } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [agencies, setAgencies] = useState<Agency[]>([]);
@@ -471,9 +473,9 @@ export default function AdminProductsPage() {
                           <TableCell>{product.category?.name || '—'}</TableCell>
                           <TableCell className="text-right">
                             <div>
-                              <p className="font-medium">Rs.{parseFloat(product.sellingPrice).toLocaleString()}</p>
+                              <p className="font-medium">{formatPrice(product.sellingPrice)}</p>
                               {product.mrp !== product.sellingPrice && (
-                                <p className="text-xs text-slate-400 line-through">Rs.{parseFloat(product.mrp).toLocaleString()}</p>
+                                <p className="text-xs text-slate-400 line-through">{formatPrice(product.mrp)}</p>
                               )}
                             </div>
                           </TableCell>
@@ -1275,10 +1277,10 @@ export default function AdminProductsPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right text-slate-500 font-mono text-xs">
-                          {formatCurrency(batch.mrp || 0)}
+                          {formatPrice(batch.mrp || 0)}
                         </TableCell>
                         <TableCell className="text-right text-emerald-600 font-bold font-mono text-xs">
-                          {formatCurrency(batch.sellingPrice || 0)}
+                          {formatPrice(batch.sellingPrice || 0)}
                         </TableCell>
                         <TableCell className="text-right">
                           <Badge variant={batch.stockQuantity <= 0 ? 'destructive' : 'outline'} className="font-mono text-[10px] h-5">

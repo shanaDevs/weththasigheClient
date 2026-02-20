@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { orderService } from '@/lib/api';
 import { useCartStore } from '@/store';
-import { formatCurrency } from '@/lib/utils';
+import { useSettings } from '@/hooks/use-settings';
 import { Order } from '@/types';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ function SuccessContent() {
     const searchParams = useSearchParams();
     const orderNumber = searchParams.get('order_id') || searchParams.get('order_number');
     const { clearCart } = useCartStore();
+    const { settings, formatPrice } = useSettings();
 
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
@@ -114,12 +115,12 @@ function SuccessContent() {
                                             <span className="text-slate-600">
                                                 {item.productName} <span className="text-slate-400">x{item.quantity}</span>
                                             </span>
-                                            <span className="font-medium">{formatCurrency(item.total)}</span>
+                                            <span className="font-medium">{formatPrice(item.total)}</span>
                                         </div>
                                     ))}
                                     <div className="pt-3 border-t border-slate-200 flex justify-between items-center font-bold text-lg text-slate-900">
                                         <span>Total Paid</span>
-                                        <span className="text-emerald-600">{formatCurrency(order?.total || 0)}</span>
+                                        <span className="text-emerald-600">{formatPrice(order?.total || 0)}</span>
                                     </div>
                                 </div>
                             </div>

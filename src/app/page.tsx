@@ -12,16 +12,17 @@ import {
   Pill,
   Stethoscope,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProductGrid, RecentlyViewedProducts } from '@/components/products';
-import { productService, categoryService, promotionService } from '@/lib/api';
-import { formatCurrency } from '@/lib/utils';
-import type { Product, Category, Promotion } from '@/types';
+import { productService, categoryService, promotionService, brandService, agencyService } from '@/lib/api';
+import { useSettings } from '@/hooks/use-settings';
+import type { Product, Category, Promotion, Brand, Agency } from '@/types';
 import {
   Carousel,
   CarouselContent,
@@ -30,32 +31,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
-const features = [
-  {
-    icon: Truck,
-    title: 'Fast Delivery',
-    description: 'Free shipping on orders above Rs.5000',
-    color: 'from-blue-500 to-cyan-500',
-  },
-  {
-    icon: Shield,
-    title: 'Genuine Products',
-    description: '100% authentic medicines guaranteed',
-    color: 'from-emerald-500 to-teal-500',
-  },
-  {
-    icon: Clock,
-    title: '24/7 Support',
-    description: 'Round the clock customer service',
-    color: 'from-purple-500 to-pink-500',
-  },
-  {
-    icon: HeartPulse,
-    title: 'Credit Facility',
-    description: 'Up to 30 days credit for verified doctors',
-    color: 'from-orange-500 to-red-500',
-  },
-];
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -72,24 +47,53 @@ const staggerContainer = {
 };
 
 export default function HomePage() {
+  const { settings, formatPrice } = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [agencies, setAgencies] = useState<Agency[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const features = [
+    {
+      icon: Truck,
+      title: 'Fast Delivery',
+      description: `Free shipping on orders above ${formatPrice(settings?.free_shipping_threshold || 5000)}`,
+      color: 'from-blue-500 to-cyan-500',
+    },
+    {
+      icon: Shield,
+      title: 'Genuine Products',
+      description: '100% authentic medicines guaranteed',
+      color: 'from-emerald-500 to-teal-500',
+    },
+    {
+      icon: Clock,
+      title: '24/7 Support',
+      description: 'Round the clock customer service',
+      color: 'from-purple-500 to-pink-500',
+    },
+    {
+      icon: HeartPulse,
+      title: 'Credit Facility',
+      description: 'Up to 30 days credit for verified doctors',
+      color: 'from-orange-500 to-red-500',
+    },
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productsRes, categoriesRes, promotionsRes] = await Promise.all([
+        const [productsRes, categoriesRes, promotionsRes, brandsRes] = await Promise.all([
           productService.getProducts({ limit: 8, sortBy: 'createdAt', sortOrder: 'DESC' }),
           categoryService.getCategories({ hierarchical: false, activeOnly: true }),
           promotionService.getActivePromotions(),
+          brandService.getBrands()
         ]);
         setProducts(productsRes.products);
         setCategories(categoriesRes.slice(0, 8));
-        // Sort promotions by displayOrder (lower value = higher priority, or vice versa? Backend uses 0 as default. Let's assume higher value = higher priority)
-        // Usually 0 is highest or lowest. Let's do DESC sorting if we want "higher number = show first"
-        // Actually, backend model says displayOrder. Let's sort DESC to match products.
+        setBrands(brandsRes.filter(b => b.isActive).slice(0, 6));
         setPromotions(promotionsRes.sort((a, b) => (b.displayOrder || 0) - (a.displayOrder || 0)));
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -129,16 +133,16 @@ export default function HomePage() {
                   </span>
                 </h1>
                 <p className="text-lg text-slate-600 max-w-xl">
-                  Premium quality medicines and healthcare products at wholesale prices.
-                  Join thousands of doctors and clinics who trust us for their medical supplies.
+                  Premium pharmaceutical bulk ordering system.
+                  Access wholesale pricing, multi-tier discounts, and managed credit facilities for healthcare facilities.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4">
-                <Link href="/products">
-                  <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl shadow-emerald-500/25 px-8 h-12 text-base">
-                    Browse Products
-                    <ArrowRight className="ml-2 w-5 h-5" />
+                <Link href="/products?view=list">
+                  <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-xl shadow-emerald-500/25 px-8 h-14 text-lg font-black rounded-2xl">
+                    Bulk Order Portal
+                    <ArrowRight className="ml-2 w-6 h-6" />
                   </Button>
                 </Link>
                 {/* <Link href="/register">
@@ -300,7 +304,7 @@ export default function HomePage() {
                                 <h3 className="text-2xl font-bold mb-2 drop-shadow-md">{promo.name}</h3>
                                 {promo.discountValue && (
                                   <p className="text-4xl font-bold drop-shadow-lg">
-                                    {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : formatCurrency(promo.discountValue)}
+                                    {promo.discountType === 'percentage' ? `${promo.discountValue}% OFF` : formatPrice(promo.discountValue)}
                                   </p>
                                 )}
                               </div>
@@ -412,9 +416,9 @@ export default function HomePage() {
               <h2 className="text-3xl font-bold text-slate-900 mb-2">New Arrivals</h2>
               <p className="text-slate-600">Check out our latest products</p>
             </div>
-            <Link href="/products?sortBy=createdAt&sortOrder=DESC">
-              <Button variant="ghost" className="text-emerald-600 hover:text-emerald-700">
-                View All <ArrowRight className="ml-2 w-4 h-4" />
+            <Link href="/products?view=list&sortBy=createdAt&sortOrder=DESC">
+              <Button variant="ghost" className="text-emerald-600 hover:text-emerald-700 font-bold rounded-xl">
+                Batch View <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </Link>
           </motion.div>
@@ -423,8 +427,68 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Featured Brands Section */}
+      <section className="py-16 bg-white overflow-hidden">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex items-center justify-between mb-10"
+          >
+            <div>
+              <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">Featured Brands</h2>
+              <p className="text-slate-600 font-medium">Top pharmaceutical manufacturers we partner with</p>
+            </div>
+            <Link href="/brands">
+              <Button variant="ghost" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold rounded-xl">
+                View All <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+          </motion.div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-3xl" />
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              variants={staggerContainer}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6"
+            >
+              {brands.map((brand) => (
+                <motion.div key={brand.id} variants={fadeInUp}>
+                  <Link href={`/products?brandId=${brand.id}`}>
+                    <Card className="group border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all duration-500 cursor-pointer rounded-[2rem] overflow-hidden bg-slate-50/50 hover:bg-white">
+                      <CardContent className="p-6 flex flex-col items-center justify-center min-h-[140px] text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500 overflow-hidden border border-slate-100">
+                          {brand.logo ? (
+                            <img src={brand.logo} alt={brand.name} className="w-full h-full object-contain p-2" />
+                          ) : (
+                            <span className="text-2xl font-black text-blue-500 uppercase">{brand.name.substring(0, 2)}</span>
+                          )}
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                          {brand.name}
+                        </h3>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </section>
+
+
       {/* Recently Viewed Products */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <RecentlyViewedProducts />
         </div>
