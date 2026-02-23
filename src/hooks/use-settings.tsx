@@ -22,6 +22,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const formatPrice = (amount: number | string): string => {
         const symbol = settings?.currency_symbol || 'Rs.';
         const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+        if (num === null || num === undefined || isNaN(num)) {
+            return `${symbol}0.00`;
+        }
+
         return `${symbol}${num.toLocaleString('en-LK', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 2

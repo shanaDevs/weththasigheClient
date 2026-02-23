@@ -519,9 +519,13 @@ export const adminApi = {
   },
 
   // Suppliers
-  async getSuppliers(params?: any): Promise<any> {
-    const response = await api.get('/suppliers', { params });
-    return response.data.data;
+  async getSuppliers(params?: any): Promise<Supplier[]> {
+    const response = await api.get<ApiResponse<any>>('/suppliers', { params });
+    const data = response.data.data;
+    if (data && data.suppliers && Array.isArray(data.suppliers)) {
+      return data.suppliers;
+    }
+    return Array.isArray(data) ? data : [];
   },
 
   async getSupplier(id: number): Promise<any> {

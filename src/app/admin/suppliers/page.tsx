@@ -58,7 +58,7 @@ export default function AdminSuppliersPage() {
         setLoading(true);
         try {
             const data = await adminApi.getSuppliers({ limit: 200 });
-            setSuppliers(data?.suppliers || data || []);
+            setSuppliers(data || []);
         } catch {
             toast.error('Failed to load suppliers');
         } finally {
@@ -384,10 +384,10 @@ export default function AdminSuppliersPage() {
                                         key={s}
                                         onClick={() => setForm(prev => ({ ...prev, status: s }))}
                                         className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${form.status === s
-                                                ? s === 'active'
-                                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                                                    : 'bg-slate-100 border-slate-300 text-slate-700'
-                                                : 'border-slate-200 text-slate-400 hover:border-slate-300'
+                                            ? s === 'active'
+                                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                                : 'bg-slate-100 border-slate-300 text-slate-700'
+                                            : 'border-slate-200 text-slate-400 hover:border-slate-300'
                                             }`}
                                     >
                                         {s.charAt(0).toUpperCase() + s.slice(1)}

@@ -151,7 +151,7 @@ export default function LoginPage() {
                 {/* Identifier */}
                 <div className="space-y-2">
                   <Label htmlFor="identifier" className="text-white/80 text-sm font-medium">
-                    Username or Phone Number
+                    Username Please
                   </Label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />

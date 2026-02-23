@@ -57,6 +57,9 @@ export function OrderRequestDialog({ product, open, onOpenChange }: OrderRequest
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md rounded-[2rem] border-0 shadow-2xl p-0 overflow-hidden">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Bulk Order Request - {product.name}</DialogTitle>
+                </DialogHeader>
                 <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-8 text-white relative">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                         <Send className="w-24 h-24 rotate-12" />

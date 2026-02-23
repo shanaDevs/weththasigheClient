@@ -128,7 +128,7 @@ export default function AdminPurchaseOrdersPage() {
     const fetchSuppliers = useCallback(async () => {
         try {
             const data = await adminApi.getSuppliers({ limit: 200, status: 'active' });
-            setSuppliers(data?.suppliers || data || []);
+            setSuppliers(data || []);
         } catch { }
     }, []);
 

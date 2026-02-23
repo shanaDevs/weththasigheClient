@@ -1213,7 +1213,7 @@ export default function AdminProductsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">None</SelectItem>
-                          {suppliers.map(s => (
+                          {Array.isArray(suppliers) && suppliers.map(s => (
                             <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
                           ))}
                         </SelectContent>
